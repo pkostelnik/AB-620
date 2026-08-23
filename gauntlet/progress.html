@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Gauntlet Loop — AB-620 vs. Coursera Bar — Live Progress</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #0d1117; color: #c9d1d9; }
+  h1 { color: #58a6ff; }
+  h2 { color: #79c0ff; border-bottom: 1px solid #30363d; padding-bottom: 6px; margin-top: 40px; }
+  .piece { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 12px 0; }
+  .piece h3 { margin: 0 0 8px 0; color: #e6edf3; }
+  .status { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+  .status.pending { background: #30363d; color: #8b949e; }
+  .status.building { background: #9e6a03; color: #fff; }
+  .status.critiquing { background: #1f6feb; color: #fff; }
+  .status.wins { background: #238636; color: #fff; }
+  .round-log { font-size: 0.9em; color: #8b949e; margin-top: 8px; }
+  .gap { color: #f85149; }
+  .meta { color: #8b949e; font-size: 0.85em; }
+</style>
+</head>
+<body>
+  <h1>🎯 Gauntlet Loop: AB-620 Lernplattform vs. Coursera Bar</h1>
+  <p class="meta">Zuletzt aktualisiert: <span id="ts">wird beim Update gesetzt</span></p>
+  <p>Ziel: AB-620-Lernplattform auf das Niveau der besten Coursera-Kurse bringen.
+     Qualitätsbar: <a href="reference/BAR.md">Coursera-Kursseiten-Struktur (siehe BAR.md)</a>.
+     Jedes Stück wird von einem Builder-Subagenten gebaut und von einem separaten,
+     frischen Kritiker-Subagenten blind gegen die Bar geprüft, bis es überzeugt oder
+     der Nutzer stoppt.</p>
+
+  <h2>Stücke &amp; Status</h2>
+  <div id="pieces">
+    <!-- wird pro Runde aktualisiert -->
+  </div>
+
+  <h2>Rundenprotokoll</h2>
+  <div id="log">
+    <!-- wird pro Runde ergänzt -->
+  </div>
+
+  <script>
+    document.getElementById('ts').textContent = new Date().toISOString();
+  </script>
+</body>
+</html>
