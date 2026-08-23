@@ -30,20 +30,27 @@
 
   <h2>Stücke &amp; Status</h2>
   <div id="pieces">
-    <div class="piece"><h3>1. Hero/Übersichtsbereich</h3><span class="status critiquing">Runde 2: Gap behoben (echte 157/157-Quellenmetrik), Kritiker prüft erneut</span></div>
-    <div class="piece"><h3>2. Domänen-Übersichtskarten</h3><span class="status critiquing">Runde 2: Content-Typ-Aufschlüsselung ergänzt, Kritiker prüft erneut</span></div>
-    <div class="piece"><h3>3. Presenter-Lernkarte</h3><span class="status critiquing">Runde 2: Modul-Gesamtkontext + CSS ergänzt, Kritiker prüft erneut</span></div>
-    <div class="piece"><h3>4. Prüfungssimulator Start/Ergebnis</h3><span class="status critiquing">Runde 2: Review als Accordion pro Domäne, Kritiker prüft erneut</span></div>
-    <div class="piece"><h3>5. Hands-on-Labs-Darstellung</h3><span class="status critiquing">Runde 2: Content-Typ-Badge ergänzt, Kritiker prüft erneut</span></div>
+    <div class="piece"><h3>1. Hero/Übersichtsbereich</h3><span class="status wins">✓ WINS (Runde 2)</span>
+      <p class="round-log">Ehrliche Vertrauensmetrik "157 von 157 Lerninhalten mit verifizierter MS-Learn-Quelle" statt erfundener Sterne/Reviews. Kritiker hat Zahl selbst gegen content.js nachgezählt.</p></div>
+    <div class="piece"><h3>2. Domänen-Übersichtskarten</h3><span class="status wins">✓ WINS (Runde 2)</span>
+      <p class="round-log">"X Lerninhalte • Y Labs • Z Prüfungsfragen" pro Domäne + Lesezeit + Fortschrittsbalken. Kritiker hat Feldnamen (domain vs. domainId) und Zählungen selbst verifiziert.</p></div>
+    <div class="piece"><h3>3. Presenter-Lernkarte</h3><span class="status wins">✓ WINS (Runde 2)</span>
+      <p class="round-log">Modul-Gesamtkontext ("X Lerninhalte in diesem Unterthema • ~Y Min. Gesamtlesezeit") über der Karte, echte Wortzähl-Summe, korrekt gestylt.</p></div>
+    <div class="piece"><h3>4. Prüfungssimulator Start/Ergebnis</h3><span class="status wins">✓ WINS (Runde 2)</span>
+      <p class="round-log">Fakten-Kacheln vor Start (Fragenzahl/Zeit/Bestehensgrenze), Domänen-Gewichtungsvergleich im Ergebnis, Review jetzt Progressive-Disclosure-Accordion pro Domäne (standardmäßig zugeklappt).</p></div>
+    <div class="piece"><h3>5. Hands-on-Labs-Darstellung</h3><span class="status wins">✓ WINS (Runde 2)</span>
+      <p class="round-log">Content-Typ-Badge ("X Schritte • 1 Code-Beispiel") sichtbar vor dem Aufklappen, transparente Zeitschätzungs-Heuristik.</p></div>
   </div>
 
   <h2>Rundenprotokoll</h2>
   <div id="log">
-    <p class="round-log"><strong>Runde 2 Builder abgeschlossen:</strong> alle 5 Gaps aus Runde 1 gezielt behoben
-    (echte 157/157-Quellenmetrik statt vager Formulierung, Content-Typ-Aufschlüsselung pro Domäne,
-    Modul-Gesamtkontext bei der Lernkarte inkl. nachträglich vom Lead-Agent ergänztem CSS,
-    Progressive-Disclosure-Accordion für den Prüfungsreview, Content-Typ-Badge vor dem Aufklappen bei Labs).
-    5 frische Kritiker prüfen jetzt erneut blind.</p>
+    <p class="round-log"><strong>Runde 2 Kritiker-Urteil (alle 5, unabhängig, frischer Kontext, blind):</strong>
+    Alle 5 Stücke WINS. Jeder Kritiker hat die verwendeten Zahlen eigenständig gegen content.js
+    nachgerechnet (keine Fake-Daten gefunden). Alle 5 Verbesserungen wurden konfliktfrei in eine
+    gemeinsame Version gemergt und per jsdom-Test erneut gemeinsam verifiziert (9/9 bestanden).</p>
+    <p class="round-log"><strong>Status:</strong> Runde-2-Gewinner sind auf dem beta-Branch committed.
+    Der Gauntlet Loop kann hier vom Nutzer als "gut genug" akzeptiert oder mit einer neuen,
+    härteren Runde (z.B. Skill-Tag-Chips auf Lab-Ebene, Sternebewertungs-Analogon global) fortgesetzt werden.</p>
   </div>
 
   <script>
