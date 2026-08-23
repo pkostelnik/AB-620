@@ -136,6 +136,16 @@
     return d ? d.title : domainId;
   }
 
+  // Parst "30-35%" oder "20%" zu einem Mittelwert (Zahl). Fällt auf null zurück, wenn nicht parsbar.
+  function domainWeightMidpoint(domainId) {
+    const d = AB620_CONTENT.domains.find(x => x.id === domainId);
+    if (!d || !d.weightPercent) return null;
+    const nums = String(d.weightPercent).match(/\d+(\.\d+)?/g);
+    if (!nums || !nums.length) return null;
+    const values = nums.map(Number);
+    return values.reduce((a, b) => a + b, 0) / values.length;
+  }
+
   function subDomainLabel(subDomainId) {
     const s = AB620_CONTENT.subDomains.find(x => x.id === subDomainId);
     return s ? s.title : subDomainId;
@@ -220,14 +230,38 @@
       const state = PresenterState[domain.id];
       const readSubDomains = subDomains.filter(sd => ProgressTracker.isSubDomainRead(sd.id)).length;
 
+      /* Coursera-artige Lesezeit-Schätzung: echte content-Textlänge aller
+         Lerninhalte der Domäne, ~200 Wörter/Minute (Standard-Lesegeschwindigkeit). */
+      const domainWordCount = AB620_CONTENT.learningItems
+        .filter(it => it.domainId === domain.id)
+        .reduce((sum, it) => sum + String(it.content || "").trim().split(/\s+/).filter(Boolean).length, 0);
+      const readingMinutes = Math.max(1, Math.round(domainWordCount / 200));
+
+      /* Echte Content-Typ-Aufschlüsselung pro Domäne (Coursera-Vorbild: "20 videos • 1 reading • 3 assignments").
+         Labs tragen domainId direkt; examBank-Fragen tragen ein "domain"-Feld. Beide werden hier nach der
+         tatsächlichen AB-620-Datenstruktur gezählt statt einer pauschalen Lerninhalte-Zahl. */
+      const domainLabCount = (AB620_CONTENT.labs || []).filter(lab => lab.domainId === domain.id).length;
+      const domainExamCount = (AB620_CONTENT.examBank || []).filter(q => q.domain === domain.id).length;
+      const contentBreakdown = `${domainItemCount} Lerninhalte • ${domainLabCount} Labs • ${domainExamCount} Prüfungsfragen`;
+
+      /* Fortschrittsbalken pro Domäne: Anteil gelesener Unterthemen dieser Domäne. */
+      const domainPercent = subDomains.length === 0 ? 0 : Math.round((readSubDomains / subDomains.length) * 100);
+
       const overviewHtml = `
         <div class="domain-overview" data-domain-id="${domain.id}" ${state.active ? 'hidden' : ""}>
           <p>${escapeHtml(domain.description)}</p>
           <ul class="domain-overview__stats">
             <li>${subDomains.length} Unterthemen</li>
-            <li>${domainItemCount} Lerninhalte</li>
+            <li>${contentBreakdown}</li>
+            <li>~${readingMinutes} Min. Lesezeit</li>
             <li>${readSubDomains} von ${subDomains.length} Unterthemen als gelesen markiert</li>
           </ul>
+          <div class="domain-progress" role="progressbar" aria-valuenow="${domainPercent}" aria-valuemin="0" aria-valuemax="100" aria-label="Fortschritt in Domäne ${escapeHtml(domain.title)}">
+            <div class="domain-progress__track">
+              <div class="domain-progress__fill" style="width: ${domainPercent}%;"></div>
+            </div>
+            <span class="domain-progress__label">${domainPercent}% abgeschlossen</span>
+          </div>
           <button type="button" class="btn btn--primary domain-presenter-start-btn" data-domain-id="${domain.id}">
             Weiter →
           </button>
@@ -243,7 +277,7 @@
           <summary class="domain-accordion__header" aria-label="Domäne ${escapeHtml(domain.title)} auf-/zuklappen">
             <span class="domain-accordion__title-group">
               <h3 id="domain-title-${domain.id}" style="margin:0;">${escapeHtml(domain.title)} <span class="badge">${escapeHtml(domain.weightPercent)}</span></h3>
-              <span class="module-card__meta">${subDomains.length} Unterthemen · ${domainItemCount} Lerninhalte</span>
+              <span class="module-card__meta">${subDomains.length} Unterthemen · ${contentBreakdown}</span>
             </span>
             <svg class="module-card__chevron domain-accordion__chevron" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -331,20 +365,41 @@
     const item = flatItems[state.index];
     const isFirst = state.index === 0;
     const isLast = state.index === total - 1;
+    const progressPct = Math.round(((state.index + 1) / total) * 100);
+    const wordCount = (item.content || "").trim().split(/\s+/).filter(Boolean).length;
+    const readMinutes = Math.max(1, Math.round(wordCount / 200));
+    const readTimeLabel = "~" + readMinutes + " Min. Lesezeit";
+
+    const subDomainItems = flatItems.filter(it => it.subDomainId === item.subDomainId);
+    const subDomainCount = subDomainItems.length;
+    const subDomainTotalMinutes = subDomainItems.reduce((sum, it) => {
+      const wc = (it.content || "").trim().split(/\s+/).filter(Boolean).length;
+      return sum + Math.max(1, Math.round(wc / 200));
+    }, 0);
+    const moduleOverviewLabel = subDomainCount + " Lerninhalte in diesem Unterthema • ~" + subDomainTotalMinutes + " Min. Gesamtlesezeit";
 
     slot.innerHTML = `
+      <div class="presenter-module-overview" aria-label="Modulübersicht">
+        <span class="presenter-module-overview__label">📚 ${escapeHtml(moduleOverviewLabel)}</span>
+      </div>
       <div class="presenter-card" role="group" aria-label="Lerninhalt ${state.index + 1} von ${total}">
+        <div class="presenter-card__progressbar" role="progressbar" aria-valuenow="${state.index + 1}" aria-valuemin="1" aria-valuemax="${total}">
+          <div class="presenter-card__progressbar-fill" style="width: ${progressPct}%;"></div>
+        </div>
         <div class="presenter-card__progress">
           <span class="presenter-card__counter">Lerninhalt ${state.index + 1} von ${total}</span>
-          <span class="presenter-card__subdomain badge">${escapeHtml(item.subDomainTitle)}</span>
+          <span class="presenter-card__meta">
+            <span class="presenter-card__readtime" title="Geschätzte Lesezeit">⏱ ${readTimeLabel}</span>
+            <span class="presenter-card__subdomain badge">${escapeHtml(item.subDomainTitle)}</span>
+          </span>
         </div>
         <div class="presenter-card__explanation">
           <h4 class="presenter-card__topic">${escapeHtml(item.topic)}</h4>
           <p class="presenter-card__content">${escapeHtml(item.content)}</p>
         </div>
         <div class="presenter-card__source">
-          <span class="presenter-card__source-label">Quelle</span>
-          <a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.sourceTitle)} ↗</a>
+          <span class="presenter-card__source-label">📖 Quelle</span>
+          <a class="presenter-card__source-link" href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.sourceTitle)} ↗</a>
         </div>
         <div class="presenter-card__nav">
           <button type="button" class="btn btn--outline presenter-back-btn" data-domain-id="${domainId}" ${isFirst ? "disabled" : ""}>← Zurück</button>
@@ -388,6 +443,33 @@
   function labArray(value) { return Array.isArray(value) ? value : (value == null ? [] : [value]); }
   function labText(value, fallback) { return value == null || value === "" ? (fallback || "") : String(value); }
 
+  /* Grobe, ehrliche Zeitschätzung pro Lab: 5 Minuten je Schritt (aus l.steps.length).
+     Das ist eine bewusst transparente Heuristik, keine gemessene/erfundene Dauer —
+     sie basiert einzig auf der Anzahl der im Lab dokumentierten Schritte. Ein Lab
+     ohne Schritte bekommt einen Mindestwert von 5 Minuten, damit nie "0 Minuten"
+     angezeigt wird. */
+  const MINUTES_PER_STEP = 5;
+  function estimateLabMinutes(stepCount) {
+    return Math.max(MINUTES_PER_STEP, (Number(stepCount) || 0) * MINUTES_PER_STEP);
+  }
+
+  /* Sprache eines Code-Snippets ableiten, damit die Code-Sektion ein sichtbares
+     Sprache-Label bekommt (Coursera-typisch: Inhalt sofort erkennbar, bevor man
+     liest). Bewusst konservativ: nur eindeutige Signaturen erkennen, sonst "Code"
+     als neutraler Fallback statt einer geratenen Sprache. */
+  function detectCodeLanguage(snippet, explicitLanguage) {
+    if (explicitLanguage) return String(explicitLanguage);
+    const s = String(snippet || "").trim();
+    if (!s) return "";
+    if (/^[\[{]/.test(s)) {
+      try { JSON.parse(s); return "JSON"; } catch (e) { /* fällt durch zu weiteren Checks */ }
+    }
+    if (/^(pac|Get-|Set-|New-|Invoke-|Import-|\$[A-Za-z_])/m.test(s)) return "PowerShell";
+    if (/^(az |curl |gh )/m.test(s)) return "Bash";
+    if (/^(SELECT|INSERT|UPDATE|DELETE)\s/im.test(s)) return "KQL/SQL";
+    return "Code";
+  }
+
   function renderLabs(filterText) {
     const container = document.getElementById("lab-list");
     if (!container) return;
@@ -429,15 +511,26 @@
       const dependency = previous && !ProgressTracker.isLabDone(previous.id) ?
         `<div class="alert alert--warning lab-dependency" role="note"><strong>Vorausgesetztes Lab:</strong> ${escapeHtml(labText(previous.topic, previous.title))} (Lab ${Number(previous.sequence) || sequence - 1}) ist noch nicht erledigt.</div>` :
         (prerequisites.length ? `<div class="alert alert--info lab-dependency"><strong>Voraussetzungen:</strong> ${prerequisites.map(escapeHtml).join(", ")}</div>` : "");
+      const estMinutes = estimateLabMinutes(steps.length);
+      const codeLang = l.codeSnippet ? detectCodeLanguage(l.codeSnippet, l.codeLanguage) : "";
       return `<details class="lab-card ${done ? "is-complete" : ""}" data-lab-id="${escapeHtml(l.id)}" data-sequence="${sequence}" data-topic="${escapeHtml(topic)}" data-domain="${escapeHtml(domainId)}">
-        <summary class="lab-card__summary"><span class="badge">Lab ${sequence}</span><span class="lab-card__title">${escapeHtml(l.title || topic)}</span><span class="badge ${done ? "badge--success" : ""}">${done ? "Abgeschlossen" : escapeHtml(domainLabel(domainId))}</span></summary>
+        <summary class="lab-card__summary">
+          <span class="badge">Lab ${sequence}</span>
+          <span class="lab-card__title">${escapeHtml(l.title || topic)}</span>
+          <span class="lab-card__duration" title="Grobe Schätzung: ${MINUTES_PER_STEP} Minuten pro Schritt (${steps.length || 1} Schritt${steps.length === 1 ? "" : "e"})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ca. ${estMinutes} Min.
+          </span>
+          <span class="badge ${done ? "badge--success" : ""}">${done ? "Abgeschlossen" : escapeHtml(domainLabel(domainId))}</span>
+          <span class="badge badge--content-type" title="Inhaltsübersicht vor dem Aufklappen">${steps.length} Schritt${steps.length === 1 ? "" : "e"}${l.codeSnippet ? " • 1 Code-Beispiel" : ""}</span>
+        </summary>
         <div class="lab-card__body">
         <p class="lab-card__topic"><strong>Topic:</strong> ${escapeHtml(topic)}</p>
         ${l.objective ? `<p><strong>Ziel:</strong> ${escapeHtml(l.objective)}</p>` : ""}
         ${dependency}
         ${steps.length ? `<h4>Schritte</h4><ol>${steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ol>` : ""}
         ${artifacts.length ? `<h4>Artefakte</h4><ul>${artifacts.map(a => `<li>${escapeHtml(a)}</li>`).join("")}</ul>` : ""}
-        ${l.codeSnippet ? `<pre class="code-block"><code>${escapeHtml(l.codeSnippet)}</code></pre>` : ""}
+        ${l.codeSnippet ? `<div class="code-block-wrap"><div class="code-block-wrap__label">${escapeHtml(codeLang)}</div><pre class="code-block"><code>${escapeHtml(l.codeSnippet)}</code></pre></div>` : ""}
         ${l.verification ? `<div class="alert alert--info"><strong>Verifikation:</strong>&nbsp;${escapeHtml(l.verification)}</div>` : ""}
         ${repo ? `<p><a href="${escapeHtml(repo)}" target="_blank" rel="noopener noreferrer">Repository öffnen ↗</a></p>` : ""}
         ${refs.length ? `<h4>Microsoft Learn</h4><ul>${refs.map(ref => { const url = typeof ref === "string" ? ref : (ref.url || ref.href); const title = typeof ref === "string" ? ref : (ref.title || ref.name || url); return url ? `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)} ↗</a></li>` : ""; }).join("")}</ul>` : ""}
@@ -625,26 +718,64 @@
       const domainRows = Object.keys(byDomain).map(dId => {
         const d = byDomain[dId];
         const pct = Math.round((d.correct / d.total) * 100);
+        const targetPct = domainWeightMidpoint(dId);
+        const weightLabel = (AB620_CONTENT.domains.find(x => x.id === dId) || {}).weightPercent || "";
+        const gap = targetPct !== null ? Math.round(pct - targetPct) : null;
+        const isWeak = gap !== null && gap < -10;
+        const compareText = targetPct === null
+          ? ""
+          : gap >= 0
+            ? `${pct}% erreicht vs. ${Math.round(targetPct)}% Prüfungsgewichtung (+${gap} Pkt.)`
+            : `${pct}% erreicht vs. ${Math.round(targetPct)}% Prüfungsgewichtung (${gap} Pkt.)`;
         return `
           <div class="exam-results__domain-row">
-            <span style="min-width:220px;">${escapeHtml(domainLabel(dId))}</span>
-            <div class="exam-results__domain-bar"><div class="exam-results__domain-fill" style="width:${pct}%"></div></div>
-            <span>${d.correct}/${d.total}</span>
+            <span class="exam-results__domain-name">${escapeHtml(domainLabel(dId))} <span class="badge">${escapeHtml(weightLabel)}</span></span>
+            <div class="exam-results__domain-bar">
+              <div class="exam-results__domain-fill${isWeak ? " is-weak" : ""}" style="width:${pct}%"></div>
+              ${targetPct !== null ? `<div class="exam-results__domain-target" style="left:${Math.min(100, Math.max(0, targetPct))}%"></div>` : ""}
+            </div>
+            <span class="exam-results__domain-score">${d.correct}/${d.total}</span>
+            <span class="exam-results__domain-compare${isWeak ? " is-weak" : ""}">${escapeHtml(compareText)}</span>
           </div>`;
       }).join("");
 
-      const reviewHtml = questions.map((q, i) => {
-        const qOptions = Array.isArray(q.options) ? q.options : [];
-        const given = answers[q.id];
-        const isCorrect = given === q.correctIndex;
+      const reviewByDomain = {};
+      questions.forEach((q, i) => {
+        const domain = q.domain;
+        if (!reviewByDomain[domain]) reviewByDomain[domain] = [];
+        reviewByDomain[domain].push({ q, i });
+      });
+
+      const reviewHtml = Object.keys(reviewByDomain).map(dId => {
+        const items = reviewByDomain[dId];
+        const itemsHtml = items.map(({ q, i }) => {
+          const qOptions = Array.isArray(q.options) ? q.options : [];
+          const given = answers[q.id];
+          const isCorrect = given === q.correctIndex;
+          return `
+            <div class="review-item">
+              <p><span class="review-item__status ${isCorrect ? "correct" : "incorrect"}">${isCorrect ? "✓ Richtig" : "✗ Falsch"}</span> — Frage ${i + 1}: ${escapeHtml(q.question)}</p>
+              <p>Ihre Antwort: ${given !== undefined ? escapeHtml(qOptions[given] || "(unbekannte Antwort)") : "(keine Antwort)"}</p>
+              ${!isCorrect ? `<p>Korrekte Antwort: ${escapeHtml(qOptions[q.correctIndex] || "(nicht angegeben)")}</p>` : ""}
+              <p>${escapeHtml(q.explanation)}</p>
+              <p><a href="${escapeHtml(q.msLearnUrl)}" target="_blank" rel="noopener noreferrer">Microsoft Learn Referenz ↗</a></p>
+            </div>`;
+        }).join("");
         return `
-          <div class="review-item">
-            <p><span class="review-item__status ${isCorrect ? "correct" : "incorrect"}">${isCorrect ? "✓ Richtig" : "✗ Falsch"}</span> — Frage ${i + 1}: ${escapeHtml(q.question)}</p>
-            <p>Ihre Antwort: ${given !== undefined ? escapeHtml(qOptions[given] || "(unbekannte Antwort)") : "(keine Antwort)"}</p>
-            ${!isCorrect ? `<p>Korrekte Antwort: ${escapeHtml(qOptions[q.correctIndex] || "(nicht angegeben)")}</p>` : ""}
-            <p>${escapeHtml(q.explanation)}</p>
-            <p><a href="${escapeHtml(q.msLearnUrl)}" target="_blank" rel="noopener noreferrer">Microsoft Learn Referenz ↗</a></p>
-          </div>`;
+          <details class="module-card review-accordion" data-domain-id="${escapeHtml(dId)}">
+            <summary class="module-card__header">
+              <span class="module-card__number" aria-hidden="true">${items.length}</span>
+              <span class="module-card__title-group">
+                <p class="module-card__title">Review anzeigen: ${escapeHtml(domainLabel(dId))} (${items.length} Fragen)</p>
+              </span>
+              <svg class="module-card__chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </summary>
+            <div class="module-card__body">
+              ${itemsHtml}
+            </div>
+          </details>`;
       }).join("");
 
       const resultsEl = document.getElementById("exam-results");
@@ -660,6 +791,7 @@
           </div>
         </div>
         <h4>Ergebnis nach Domäne</h4>
+        <p class="exam-results__legend">Der senkrechte Strich markiert die Ziel-Trefferquote entsprechend der Prüfungsgewichtung dieser Domäne. Rot markierte Domänen liegen mehr als 10 Punkte darunter – hier besteht der größte Lernbedarf.</p>
         ${domainRows}
         <h4 style="margin-top:24px;">Vollständiger Review</h4>
         ${reviewHtml}

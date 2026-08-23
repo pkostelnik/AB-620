@@ -42,11 +42,32 @@
     <div class="hero__content">
       <h1 id="hero-title">Microsoft AB-620: Designing and Building Integrated AI Agent Solutions in Copilot Studio</h1>
       <p class="hero__subtitle">Ihr strukturierter Begleiter für die Zertifizierungsprüfung – mit Lernpfad aus 157 quellenbelegten Lerninhalten, praktischen Labs und einem realistischen Prüfungssimulator.</p>
+
       <div class="hero__badges">
         <span class="badge">Prüfungscode: AB-620</span>
         <span class="badge">ca. 60 Minuten Dauer</span>
         <span class="badge">Bestehensgrenze: 700/1000 Punkte</span>
       </div>
+
+      <p class="hero__effort" aria-label="Geschätzter Lernaufwand">
+        <span aria-hidden="true">⏱️</span>
+        <strong>ca. 4 Wochen bei 4 Std./Woche</strong> (≈16 Zeitstunden) –
+        abgeleitet aus 157 Lerninhalten (≈105 Min. Lesezeit bei 200 Wörtern/Min.),
+        20 Hands-on Labs (≈30 Min./Lab) und dem 75-Fragen-Prüfungssimulator.
+      </p>
+
+      <ul class="skill-tags" aria-label="Geprüfte Kompetenzbereiche (Prüfungsdomänen)">
+        <li><a class="skill-tag" href="#d1" data-domain="d1">Agenten planen &amp; konfigurieren <span class="skill-tag__weight">30–35%</span></a></li>
+        <li><a class="skill-tag" href="#d2" data-domain="d2">Agenten integrieren &amp; erweitern <span class="skill-tag__weight">40–45%</span></a></li>
+        <li><a class="skill-tag" href="#d3" data-domain="d3">Agenten testen &amp; verwalten <span class="skill-tag__weight">20–25%</span></a></li>
+      </ul>
+
+      <p class="hero__quality-metric" aria-label="Vertrauensnachweis: verifizierte interne Qualitätskennzahlen statt Nutzerbewertungen">
+        <span class="quality-metric__icon" aria-hidden="true">✓</span>
+        <strong>157 von 157</strong> Lerninhalten mit verifizierter Microsoft-Learn-Quelle · <strong>7/7</strong> automatisierte QA-Prüfpunkte bestanden
+        <a href="#qualitaetssicherung" class="hero__quality-link">Details zur Qualitätssicherung ↓</a>
+      </p>
+
       <div class="hero__actions">
         <a href="#lernpfad" class="btn btn--primary">Jetzt lernen</a>
         <a href="#simulator" class="btn btn--secondary">Prüfung simulieren</a>
@@ -152,11 +173,24 @@
     <div id="exam-container" class="exam-shell">
       <div class="exam-intro">
         <p>
-          Der Prüfungssimulator umfasst <strong>30 Fragen</strong> aus einem Pool von 75 Fragen in
-          <strong>45 Minuten</strong>, bei einer Bestehensgrenze von <strong>700 von 1000 Punkten</strong>.
-          Wie in der echten Prüfung erhalten Sie <strong>kein Sofort-Feedback</strong> zu einzelnen Antworten –
-          die Auswertung erfolgt erst am Ende.
+          Simulieren Sie die echte Prüfungssituation: <strong>zufällig ausgewählte Fragen</strong> aus einem
+          Pool von 75, ein <strong>striktes Zeitlimit</strong> und <strong>kein Sofort-Feedback</strong> zu
+          einzelnen Antworten – die Auswertung inklusive Domänen-Analyse erfolgt erst am Ende.
         </p>
+        <dl class="exam-facts" aria-label="Eckdaten der Prüfungssimulation">
+          <div class="exam-facts__item">
+            <dt>Fragenanzahl</dt>
+            <dd><strong>30</strong> Fragen<span class="exam-facts__sub">aus Pool von 75</span></dd>
+          </div>
+          <div class="exam-facts__item">
+            <dt>Zeitlimit</dt>
+            <dd><strong>45</strong> Minuten<span class="exam-facts__sub">Countdown sichtbar</span></dd>
+          </div>
+          <div class="exam-facts__item">
+            <dt>Bestehensgrenze</dt>
+            <dd><strong>700</strong> / 1000 Punkten<span class="exam-facts__sub">≈ 70 % korrekt</span></dd>
+          </div>
+        </dl>
         <button id="exam-start-btn" type="button" class="btn btn--primary">Prüfungssimulation starten</button>
       </div>
       <div id="exam-timer" class="exam-timer" hidden aria-live="polite"></div>
