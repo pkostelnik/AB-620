@@ -171,9 +171,42 @@
       return;
     }
 
+    /* Echtes Quellen-Vertrauenssignal + Priorisierungsempfehlung pro Domäne:
+       - Vertrauenssignal: Anzahl EINDEUTIGER sourceUrl-Werte der Lerninhalte je Domäne (new Set(...).size),
+         keine geschätzte oder erfundene Zahl.
+       - Priorisierung: die Domäne mit dem niedrigsten Fortschritt (%) bekommt eine "zuerst hier starten"-Empfehlung,
+         aber NUR solange noch keine Domäne vollständig (100%) gelesen ist. */
+    const domainStatsById = {};
+    AB620_CONTENT.domains.forEach(domain => {
+      const subDomainsForDomain = AB620_CONTENT.subDomains.filter(sd => sd.domainId === domain.id);
+      const readSubDomainsForDomain = subDomainsForDomain.filter(sd => ProgressTracker.isSubDomainRead(sd.id)).length;
+      const percent = subDomainsForDomain.length === 0 ? 0 : Math.round((readSubDomainsForDomain / subDomainsForDomain.length) * 100);
+      const uniqueSourceCount = new Set(
+        AB620_CONTENT.learningItems.filter(it => it.domainId === domain.id).map(it => it.sourceUrl)
+      ).size;
+      domainStatsById[domain.id] = { percent, uniqueSourceCount };
+    });
+    const anyDomainFullyRead = Object.values(domainStatsById).some(s => s.percent === 100);
+    let recommendedDomainId = null;
+    if (!anyDomainFullyRead) {
+      let lowest = null;
+      AB620_CONTENT.domains.forEach(domain => {
+        const p = domainStatsById[domain.id].percent;
+        if (lowest === null || p < lowest.percent) {
+          lowest = { id: domain.id, percent: p };
+        }
+      });
+      if (lowest) recommendedDomainId = lowest.id;
+    }
+
     const html = AB620_CONTENT.domains.map(domain => {
       const subDomains = AB620_CONTENT.subDomains.filter(sd => sd.domainId === domain.id);
       const domainItemCount = AB620_CONTENT.learningItems.filter(it => it.domainId === domain.id).length;
+      const domainSourceCount = domainStatsById[domain.id].uniqueSourceCount;
+      const trustBadgeHtml = `<span class="badge domain-trust-badge" title="Basierend auf ${domainSourceCount} eindeutigen offiziellen Microsoft-Learn-Quellen">Basierend auf ${domainSourceCount} offiziellen Microsoft-Learn-Quellen</span>`;
+      const recommendationBadgeHtml = domain.id === recommendedDomainId
+        ? `<span class="badge domain-recommendation-badge" title="Niedrigster Fortschritt aller Domänen">⭐ Empfehlung: zuerst hier starten</span>`
+        : "";
 
       /* -------- Suchmodus: klassische Akkordeon-Liste (Übersicht/Presenter ergibt bei Filtern keinen Sinn) -------- */
       if (filter) {
@@ -211,6 +244,7 @@
               <span class="domain-accordion__title-group">
                 <h3 id="domain-title-${domain.id}" style="margin:0;">${escapeHtml(domain.title)} <span class="badge">${escapeHtml(domain.weightPercent)}</span></h3>
                 <span class="module-card__meta">Suchtreffer in dieser Domäne</span>
+                <span class="domain-badges">${trustBadgeHtml}${recommendationBadgeHtml}</span>
               </span>
               <svg class="module-card__chevron domain-accordion__chevron" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -278,6 +312,7 @@
             <span class="domain-accordion__title-group">
               <h3 id="domain-title-${domain.id}" style="margin:0;">${escapeHtml(domain.title)} <span class="badge">${escapeHtml(domain.weightPercent)}</span></h3>
               <span class="module-card__meta">${subDomains.length} Unterthemen · ${contentBreakdown}</span>
+              <span class="domain-badges">${trustBadgeHtml}${recommendationBadgeHtml}</span>
             </span>
             <svg class="module-card__chevron domain-accordion__chevron" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -378,6 +413,30 @@
     }, 0);
     const moduleOverviewLabel = subDomainCount + " Lerninhalte in diesem Unterthema • ~" + subDomainTotalMinutes + " Min. Gesamtlesezeit";
 
+    /* Direktes "Als gelesen markieren" in der Karte selbst: nutzt dieselbe
+       ProgressTracker-Logik wie der subdomain-read-btn im Übersichts-Screen,
+       damit man dafür nicht mehr zur Übersicht zurück muss. */
+    const isSubDomainRead = ProgressTracker.isSubDomainRead(item.subDomainId);
+    const readBtnLabel = isSubDomainRead ? "✓ Als gelesen markiert" : "Als gelesen markieren";
+
+    /* Klarer Abschluss-Zustand: beim letzten Lerninhalt der Sequenz ersetzt eine
+       Abschluss-Meldung den einfach deaktivierten "Weiter"-Button. */
+    const navHtml = isLast
+      ? `
+        <div class="presenter-card__nav">
+          <button type="button" class="btn btn--outline presenter-back-btn" data-domain-id="${domainId}" ${isFirst ? "disabled" : ""}>← Zurück</button>
+          <button type="button" class="btn btn--secondary presenter-overview-btn" data-domain-id="${domainId}">Übersicht</button>
+        </div>
+        <div class="presenter-card__complete alert alert--success" role="status">
+          🎉 Unterthema abgeschlossen — zurück zur Übersicht
+        </div>`
+      : `
+        <div class="presenter-card__nav">
+          <button type="button" class="btn btn--outline presenter-back-btn" data-domain-id="${domainId}" ${isFirst ? "disabled" : ""}>← Zurück</button>
+          <button type="button" class="btn btn--secondary presenter-overview-btn" data-domain-id="${domainId}">Übersicht</button>
+          <button type="button" class="btn btn--primary presenter-next-btn" data-domain-id="${domainId}">Weiter →</button>
+        </div>`;
+
     slot.innerHTML = `
       <div class="presenter-module-overview" aria-label="Modulübersicht">
         <span class="presenter-module-overview__label">📚 ${escapeHtml(moduleOverviewLabel)}</span>
@@ -401,16 +460,16 @@
           <span class="presenter-card__source-label">📖 Quelle</span>
           <a class="presenter-card__source-link" href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.sourceTitle)} ↗</a>
         </div>
-        <div class="presenter-card__nav">
-          <button type="button" class="btn btn--outline presenter-back-btn" data-domain-id="${domainId}" ${isFirst ? "disabled" : ""}>← Zurück</button>
-          <button type="button" class="btn btn--secondary presenter-overview-btn" data-domain-id="${domainId}">Übersicht</button>
-          <button type="button" class="btn btn--primary presenter-next-btn" data-domain-id="${domainId}" ${isLast ? "disabled" : ""}>Weiter →</button>
+        <div class="presenter-card__actions">
+          <button type="button" class="btn btn--outline subdomain-read-btn" data-subdomain-id="${escapeHtml(item.subDomainId)}" aria-pressed="${isSubDomainRead}">${readBtnLabel}</button>
         </div>
+        ${navHtml}
       </div>`;
 
     const backBtn = slot.querySelector(".presenter-back-btn");
     const nextBtn = slot.querySelector(".presenter-next-btn");
     const overviewBtn = slot.querySelector(".presenter-overview-btn");
+    const readBtn = slot.querySelector(".subdomain-read-btn");
 
     if (backBtn) backBtn.addEventListener("click", () => {
       if (state.index > 0) {
@@ -435,6 +494,13 @@
         domainEl.querySelector(".domain-presenter").hidden = true;
       }
       Announcer.say("Zurück zur Übersicht: " + domainLabel(domainId));
+    });
+    if (readBtn) readBtn.addEventListener("click", () => {
+      const sdId = readBtn.getAttribute("data-subdomain-id");
+      ProgressTracker.markSubDomainRead(sdId);
+      readBtn.textContent = "✓ Als gelesen markiert";
+      readBtn.setAttribute("aria-pressed", "true");
+      Announcer.say("Unterthema als gelesen markiert.");
     });
   }
 
@@ -470,6 +536,15 @@
     return "Code";
   }
 
+  /* Heuristik: Level-Badge nur aus der echten Schrittzahl abgeleitet, keine
+     redaktionelle Einstufung. <=3 Schritte = Einsteiger, 4-6 = Fortgeschritten,
+     >6 = Experte. Transparent als grobe Näherung gekennzeichnet. */
+  function labLevelFromSteps(stepCount) {
+    if (stepCount <= 3) return "Einsteiger";
+    if (stepCount <= 6) return "Fortgeschritten";
+    return "Experte";
+  }
+
   function renderLabs(filterText) {
     const container = document.getElementById("lab-list");
     if (!container) return;
@@ -493,7 +568,11 @@
     const topicSelect = `<label class="lab-filter">Topic <select id="lab-topic-filter" aria-label="Labs nach Topic filtern">${selectOptions(topics, LabViewState.topic, "Topics")}</select></label>`;
     const domainSelect = `<label class="lab-filter">Domäne <select id="lab-domain-filter" aria-label="Labs nach Domäne filtern">` +
       `<option value="">Alle Domänen</option>` + domainIds.map(id => `<option value="${escapeHtml(id)}" ${id === LabViewState.domain ? "selected" : ""}>${escapeHtml(domainLabel(id))}</option>`).join("") + `</select></label>`;
-    const controls = `<div class="lab-navigation" aria-label="Lab-Navigation"><span>${visible.length} von ${allLabs.length} Labs</span>${topicSelect}${domainSelect}</div>`;
+    // Aggregierte Fortschrittsanzeige: zählt echte, in ProgressTracker gespeicherte
+    // "abgeschlossen"-Markierungen über alle Labs (nicht nur die gefilterte Ansicht).
+    const completedLabsCount = allLabs.filter(l => ProgressTracker.isLabDone(l.id)).length;
+    const progressHeader = `<div class="lab-progress-summary" role="status">${completedLabsCount} von ${allLabs.length} Labs abgeschlossen</div>`;
+    const controls = progressHeader + `<div class="lab-navigation" aria-label="Lab-Navigation"><span>${visible.length} von ${allLabs.length} Labs</span>${topicSelect}${domainSelect}</div>`;
     if (!visible.length) { container.innerHTML = controls + `<p role="status">Keine Labs gefunden für „${escapeHtml(filterText || "die gewählten Filter")}“.</p>`; bindLabFilters(container, filterText); return; }
 
     const indexById = new Map(allLabs.map((l, i) => [l.id, i]));
@@ -512,6 +591,7 @@
         `<div class="alert alert--warning lab-dependency" role="note"><strong>Vorausgesetztes Lab:</strong> ${escapeHtml(labText(previous.topic, previous.title))} (Lab ${Number(previous.sequence) || sequence - 1}) ist noch nicht erledigt.</div>` :
         (prerequisites.length ? `<div class="alert alert--info lab-dependency"><strong>Voraussetzungen:</strong> ${prerequisites.map(escapeHtml).join(", ")}</div>` : "");
       const estMinutes = estimateLabMinutes(steps.length);
+      const level = labLevelFromSteps(steps.length);
       const codeLang = l.codeSnippet ? detectCodeLanguage(l.codeSnippet, l.codeLanguage) : "";
       return `<details class="lab-card ${done ? "is-complete" : ""}" data-lab-id="${escapeHtml(l.id)}" data-sequence="${sequence}" data-topic="${escapeHtml(topic)}" data-domain="${escapeHtml(domainId)}">
         <summary class="lab-card__summary">
@@ -522,6 +602,7 @@
             ca. ${estMinutes} Min.
           </span>
           <span class="badge ${done ? "badge--success" : ""}">${done ? "Abgeschlossen" : escapeHtml(domainLabel(domainId))}</span>
+          <span class="badge badge--level" title="Heuristik: abgeleitet aus der Schrittzahl (${steps.length} Schritt${steps.length === 1 ? "" : "e"}), keine redaktionelle Einstufung">${level}</span>
           <span class="badge badge--content-type" title="Inhaltsübersicht vor dem Aufklappen">${steps.length} Schritt${steps.length === 1 ? "" : "e"}${l.codeSnippet ? " • 1 Code-Beispiel" : ""}</span>
         </summary>
         <div class="lab-card__body">
@@ -715,6 +796,8 @@
       const scaledScore = questions.length ? Math.round((correctCount / questions.length) * 1000) : 0;
       const passed = scaledScore >= 700;
 
+      let weakestDomain = null;
+      let weakestGap = 0;
       const domainRows = Object.keys(byDomain).map(dId => {
         const d = byDomain[dId];
         const pct = Math.round((d.correct / d.total) * 100);
@@ -722,6 +805,10 @@
         const weightLabel = (AB620_CONTENT.domains.find(x => x.id === dId) || {}).weightPercent || "";
         const gap = targetPct !== null ? Math.round(pct - targetPct) : null;
         const isWeak = gap !== null && gap < -10;
+        if (isWeak && gap < weakestGap) {
+          weakestGap = gap;
+          weakestDomain = dId;
+        }
         const compareText = targetPct === null
           ? ""
           : gap >= 0
@@ -786,13 +873,14 @@
             <span class="score-ring__value">${scaledScore}</span>
           </div>
           <div>
-            <h3>${passed ? "Bestanden ✓" : "Nicht bestanden"}</h3>
+            <h3 class="${passed ? "exam-results__status--pass" : "exam-results__status--fail"}">${passed ? "Bestanden ✓" : "Nicht bestanden"}</h3>
             <p>${scaledScore} von 1000 Punkten (Bestehensgrenze: 700) — ${correctCount} von ${questions.length} Fragen richtig.</p>
           </div>
         </div>
         <h4>Ergebnis nach Domäne</h4>
         <p class="exam-results__legend">Der senkrechte Strich markiert die Ziel-Trefferquote entsprechend der Prüfungsgewichtung dieser Domäne. Rot markierte Domänen liegen mehr als 10 Punkte darunter – hier besteht der größte Lernbedarf.</p>
         ${domainRows}
+        ${weakestDomain ? `<p class="exam-results__recommendation">Empfehlung: Wiederholen Sie ${escapeHtml(domainLabel(weakestDomain))} — größter Abstand zur Zielquote.</p>` : ""}
         <h4 style="margin-top:24px;">Vollständiger Review</h4>
         ${reviewHtml}
         <button type="button" class="btn btn--primary" id="exam-restart-btn" style="margin-top:16px;">Neue Prüfungssimulation starten</button>
