@@ -121,6 +121,19 @@
           " Unterthemen gelernt (" + AB620_CONTENT.learningItems.length + " Lerninhalte gesamt, " +
           AB620_CONTENT.labs.length + " Labs)";
       }
+      document.querySelectorAll('.domain-accordion').forEach(el => {
+        const subs = AB620_CONTENT.subDomains.filter(sd => sd.domainId === el.dataset.domainId);
+        const done = subs.filter(sd => ProgressTracker.isSubDomainRead(sd.id)).length;
+        const value = subs.length ? Math.round(done / subs.length * 100) : 0;
+        const bar = el.querySelector('.domain-progress');
+        if (bar) bar.setAttribute('aria-valuenow', value);
+        const fill = el.querySelector('.domain-progress__fill');
+        if (fill) fill.style.width = value + '%';
+        const label = el.querySelector('.domain-progress__label');
+        if (label) label.textContent = value + '% als gelesen markiert';
+        const stat = el.querySelector('.domain-read-stat');
+        if (stat) stat.textContent = `${done} von ${subs.length} Unterthemen als gelesen markiert`;
+      });
     }
   };
 
@@ -288,7 +301,7 @@
             <li>${subDomains.length} Unterthemen</li>
             <li>${contentBreakdown}</li>
             <li>~${readingMinutes} Min. Lesezeit</li>
-            <li>${readSubDomains} von ${subDomains.length} Unterthemen als gelesen markiert</li>
+            <li class="domain-read-stat">${readSubDomains} von ${subDomains.length} Unterthemen als gelesen markiert</li>
           </ul>
           <div class="domain-progress" role="progressbar" aria-valuenow="${domainPercent}" aria-valuemin="0" aria-valuemax="100" aria-label="Fortschritt in Domäne ${escapeHtml(domain.title)}">
             <div class="domain-progress__track">
@@ -417,7 +430,7 @@
        ProgressTracker-Logik wie der subdomain-read-btn im Übersichts-Screen,
        damit man dafür nicht mehr zur Übersicht zurück muss. */
     const isSubDomainRead = ProgressTracker.isSubDomainRead(item.subDomainId);
-    const readBtnLabel = isSubDomainRead ? "✓ Als gelesen markiert" : "Als gelesen markieren";
+    const readBtnLabel = isSubDomainRead ? "✓ Unterthema als gelesen markiert" : "Unterthema als gelesen markieren";
 
     /* Klarer Abschluss-Zustand: beim letzten Lerninhalt der Sequenz ersetzt eine
        Abschluss-Meldung den einfach deaktivierten "Weiter"-Button. */
@@ -428,7 +441,7 @@
           <button type="button" class="btn btn--secondary presenter-overview-btn" data-domain-id="${domainId}">Übersicht</button>
         </div>
         <div class="presenter-card__complete alert alert--success" role="status">
-          🎉 Unterthema abgeschlossen — zurück zur Übersicht
+          Ende der Lernkarten dieser Domäne. Den Lesestatus markieren Sie selbst; über „Übersicht“ gelangen Sie zurück.
         </div>`
       : `
         <div class="presenter-card__nav">
@@ -442,7 +455,7 @@
         <span class="presenter-module-overview__label">📚 ${escapeHtml(moduleOverviewLabel)}</span>
       </div>
       <div class="presenter-card" role="group" aria-label="Lerninhalt ${state.index + 1} von ${total}">
-        <div class="presenter-card__progressbar" role="progressbar" aria-valuenow="${state.index + 1}" aria-valuemin="1" aria-valuemax="${total}">
+        <div class="presenter-card__progressbar" role="progressbar" aria-label="Position innerhalb der Domäne, nicht Lesestatus" aria-valuenow="${state.index + 1}" aria-valuemin="1" aria-valuemax="${total}">
           <div class="presenter-card__progressbar-fill" style="width: ${progressPct}%;"></div>
         </div>
         <div class="presenter-card__progress">
@@ -452,7 +465,7 @@
             <span class="presenter-card__subdomain badge">${escapeHtml(item.subDomainTitle)}</span>
           </span>
         </div>
-        <div class="presenter-card__explanation">
+        <div class="presenter-card__explanation" tabindex="0" role="region" aria-label="Lerninhalt: ${escapeHtml(item.topic)}">
           <h4 class="presenter-card__topic">${escapeHtml(item.topic)}</h4>
           <p class="presenter-card__content">${escapeHtml(item.content)}</p>
         </div>
@@ -492,6 +505,7 @@
       if (domainEl) {
         domainEl.querySelector(".domain-overview").hidden = false;
         domainEl.querySelector(".domain-presenter").hidden = true;
+        domainEl.querySelector(".domain-presenter-start-btn").focus({ preventScroll: true });
       }
       Announcer.say("Zurück zur Übersicht: " + domainLabel(domainId));
     });
@@ -502,6 +516,7 @@
       readBtn.setAttribute("aria-pressed", "true");
       Announcer.say("Unterthema als gelesen markiert.");
     });
+    slot.querySelector('.presenter-card__explanation').focus({ preventScroll: true });
   }
 
   /* ---------------- Lab rendering (20-Lab-Architektur, mit Legacy-Fallbacks) ---------------- */
@@ -585,7 +600,7 @@
       const done = ProgressTracker.isLabDone(l.id);
       const steps = labArray(l.steps);
       const artifacts = labArray(l.artifacts || l.deliverables);
-      const refs = labArray(l.msLearnReferences || l.microsoftLearnReferences || l.msLearnUrls || l.references).filter(Boolean);
+      const refs = labArray(l.msLearnRefs || l.msLearnReferences || l.microsoftLearnReferences || l.msLearnUrls || l.references).filter(Boolean);
       const repo = l.repositoryUrl || l.repositoryLink || l.repository || l.repoUrl || l.githubUrl;
       const dependency = previous && !ProgressTracker.isLabDone(previous.id) ?
         `<div class="alert alert--warning lab-dependency" role="note"><strong>Vorausgesetztes Lab:</strong> ${escapeHtml(labText(previous.topic, previous.title))} (Lab ${Number(previous.sequence) || sequence - 1}) ist noch nicht erledigt.</div>` :
@@ -622,8 +637,11 @@
     container.innerHTML = controls + html;
     bindLabFilters(container, filterText);
     container.querySelectorAll(".lab-done-btn").forEach(btn => btn.addEventListener("click", () => {
-      ProgressTracker.markLabDone(btn.getAttribute("data-lab-id"));
+      const labId = btn.getAttribute("data-lab-id");
+      ProgressTracker.markLabDone(labId);
       renderLabs(filterText);
+      const card = Array.from(container.querySelectorAll('.lab-card')).find(el => el.dataset.labId === labId);
+      if (card) { card.open = true; card.querySelector('.lab-done-btn').focus({ preventScroll: true }); }
       Announcer.say("Lab als abgeschlossen markiert.");
     }));
   }
@@ -797,32 +815,22 @@
       const passed = scaledScore >= 700;
 
       let weakestDomain = null;
-      let weakestGap = 0;
+      let lowestAccuracy = 100;
       const domainRows = Object.keys(byDomain).map(dId => {
         const d = byDomain[dId];
         const pct = Math.round((d.correct / d.total) * 100);
-        const targetPct = domainWeightMidpoint(dId);
         const weightLabel = (AB620_CONTENT.domains.find(x => x.id === dId) || {}).weightPercent || "";
-        const gap = targetPct !== null ? Math.round(pct - targetPct) : null;
-        const isWeak = gap !== null && gap < -10;
-        if (isWeak && gap < weakestGap) {
-          weakestGap = gap;
-          weakestDomain = dId;
-        }
-        const compareText = targetPct === null
-          ? ""
-          : gap >= 0
-            ? `${pct}% erreicht vs. ${Math.round(targetPct)}% Prüfungsgewichtung (+${gap} Pkt.)`
-            : `${pct}% erreicht vs. ${Math.round(targetPct)}% Prüfungsgewichtung (${gap} Pkt.)`;
+        // Exam topic weight describes coverage, NOT a pass threshold or target accuracy.
+        if (pct < lowestAccuracy) { lowestAccuracy = pct; weakestDomain = dId; }
+        const compareText = `${pct}% richtig beantwortet · Prüfungsanteil: ${weightLabel}`;
         return `
           <div class="exam-results__domain-row">
-            <span class="exam-results__domain-name">${escapeHtml(domainLabel(dId))} <span class="badge">${escapeHtml(weightLabel)}</span></span>
+            <span class="exam-results__domain-name">${escapeHtml(domainLabel(dId))}</span>
             <div class="exam-results__domain-bar">
-              <div class="exam-results__domain-fill${isWeak ? " is-weak" : ""}" style="width:${pct}%"></div>
-              ${targetPct !== null ? `<div class="exam-results__domain-target" style="left:${Math.min(100, Math.max(0, targetPct))}%"></div>` : ""}
+              <div class="exam-results__domain-fill" style="width:${pct}%"></div>
             </div>
             <span class="exam-results__domain-score">${d.correct}/${d.total}</span>
-            <span class="exam-results__domain-compare${isWeak ? " is-weak" : ""}">${escapeHtml(compareText)}</span>
+            <span class="exam-results__domain-compare">${escapeHtml(compareText)}</span>
           </div>`;
       }).join("");
 
@@ -878,9 +886,9 @@
           </div>
         </div>
         <h4>Ergebnis nach Domäne</h4>
-        <p class="exam-results__legend">Der senkrechte Strich markiert die Ziel-Trefferquote entsprechend der Prüfungsgewichtung dieser Domäne. Rot markierte Domänen liegen mehr als 10 Punkte darunter – hier besteht der größte Lernbedarf.</p>
+        <p class="exam-results__legend">Die Balken zeigen Ihren Anteil richtiger Antworten je Domäne in diesem Übungsversuch. Die Prüfungsgewichtung beschreibt die Themenverteilung, keine erforderliche Trefferquote. Dieses Übungsergebnis bildet nicht Microsofts skalierte Prüfungsbewertung ab.</p>
         ${domainRows}
-        ${weakestDomain ? `<p class="exam-results__recommendation">Empfehlung: Wiederholen Sie ${escapeHtml(domainLabel(weakestDomain))} — größter Abstand zur Zielquote.</p>` : ""}
+        ${weakestDomain ? `<p class="exam-results__recommendation">Wiederholung empfohlen: ${escapeHtml(domainLabel(weakestDomain))} — niedrigster Anteil richtiger Antworten in diesem Versuch (${lowestAccuracy}%). Nutzen Sie den Fragenreview unten.</p>` : ""}
         <h4 style="margin-top:24px;">Vollständiger Review</h4>
         ${reviewHtml}
         <button type="button" class="btn btn--primary" id="exam-restart-btn" style="margin-top:16px;">Neue Prüfungssimulation starten</button>
@@ -905,13 +913,26 @@
     });
   }
 
+  /* ---------------- Domain shortcuts ---------------- */
+  function initDomainLinks() {
+    document.querySelectorAll('a[data-domain]').forEach(link => link.addEventListener('click', event => {
+      const id = link.dataset.domain;
+      if (!AB620_CONTENT.domains.some(d => d.id === id)) return;
+      event.preventDefault();
+      const search = document.getElementById('search-input');
+      if (search && search.value) { search.value = ''; renderModules(''); renderLabs(''); }
+      const domain = Array.from(document.querySelectorAll('.domain-accordion')).find(el => el.dataset.domainId === id);
+      if (domain) { domain.open = true; domain.scrollIntoView({ block: 'start' }); domain.querySelector('summary').focus({ preventScroll: true }); }
+    }));
+  }
+
   /* ---------------- Bootstrap ---------------- */
   document.addEventListener("DOMContentLoaded", () => {
     try { ThemeManager.init(); } catch (e) { console.error("ThemeManager.init failed:", e); }
     try { renderModules(""); } catch (e) { console.error("renderModules failed:", e); }
     try { renderLabs(""); } catch (e) { console.error("renderLabs failed:", e); }
     try { ExamSimulator.init(); } catch (e) { console.error("ExamSimulator.init failed:", e); }
-    try { initSearch(); } catch (e) { console.error("initSearch failed:", e); }
+    try { initSearch(); initDomainLinks(); } catch (e) { console.error("Navigation init failed:", e); }
     try { Dashboard.refresh(); } catch (e) { console.error("Dashboard.refresh failed:", e); }
   });
 

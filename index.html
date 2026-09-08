@@ -5,9 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AB-620 Prüfungsvorbereitung – Designing and Building Integrated AI Agent Solutions in Copilot Studio</title>
 <meta name="description" content="Interaktive Lernplattform zur Vorbereitung auf die Microsoft-Zertifizierung AB-620: Lernpfad, Hands-on Labs und Prüfungssimulator.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260822-lab-accordion">
+<link rel="stylesheet" href="assets/css/style.css?v=whizlabs-r1">
+<link rel="stylesheet" href="assets/css/redesign-shell.css?v=whizlabs-r1">
+<link rel="stylesheet" href="assets/css/redesign-learning.css?v=whizlabs-r1">
 </head>
-<body>
+<body id="top" class="wl-redesign">
 <a class="skip-link" href="#main-content">Zum Hauptinhalt springen</a>
 <div id="aria-announcer" class="sr-only" aria-live="polite"></div>
 
@@ -15,14 +17,14 @@
   <div class="site-header__inner">
     <a class="site-header__brand" href="#top" aria-label="AB-620 Prüfungsvorbereitung – Startseite">
       <span class="site-header__brand-badge">AB-620</span>
-      <span aria-hidden="true">🤖</span> AB-620 Prüfungsvorbereitung
+      <span class="site-header__brand-name">Prüfungsvorbereitung<span>KI-Agenten mit Copilot Studio</span></span>
     </a>
     <nav class="site-nav" aria-label="Hauptnavigation">
         <a href="#uebersicht">Übersicht</a>
         <a href="#lernpfad">Lernpfad</a>
         <a href="#hands-on-labs">Hands-on Labs</a>
         <a href="#simulator">Prüfungssimulator</a>
-        <a href="#qualitaetssicherung">Qualitätssicherung</a>
+        <a href="#qualitaetssicherung">Quellen &amp; Qualität</a>
     </nav>
     <div class="theme-switcher">
       <label for="theme-select" class="sr-only">Farbschema auswählen</label>
@@ -39,50 +41,43 @@
 <main id="main-content">
 
   <section id="uebersicht" class="hero" aria-labelledby="hero-title">
-    <div class="hero__content">
-      <h1 id="hero-title">Microsoft AB-620: Designing and Building Integrated AI Agent Solutions in Copilot Studio</h1>
-      <p class="hero__subtitle">Ihr strukturierter Begleiter für die Zertifizierungsprüfung – mit Lernpfad aus 157 quellenbelegten Lerninhalten, praktischen Labs und einem realistischen Prüfungssimulator.</p>
-
-      <div class="hero__meta-card" aria-label="Prüfungs-Kennzahlen auf einen Blick">
-        <div class="hero__badges">
-          <span class="badge">Prüfungscode: AB-620</span>
-          <span class="badge">ca. 60 Minuten Dauer</span>
-          <span class="badge">Bestehensgrenze: 700/1000 Punkte</span>
+    <div class="hero__split">
+      <div class="hero__content">
+        <p class="hero__eyebrow">Copilot Studio · AB-620 · Lernplattform</p>
+        <h1 id="hero-title">KI-Agenten bauen.<br><span>AB-620 vorbereiten.</span></h1>
+        <p class="hero__subtitle">Vom Konzept zum integrierten Agenten: Lernen Sie gezielt, setzen Sie Ihr Wissen in praktischen Labs um und üben Sie für die Zertifizierungsprüfung.</p>
+        <div class="hero__actions">
+          <a href="#lernpfad" class="btn btn--primary">Jetzt lernen <span aria-hidden="true">→</span></a>
+          <a href="#simulator" class="btn btn--secondary">Prüfung simulieren</a>
         </div>
+        <p class="hero__audience">Für Architektur, Engineering und Power-Platform-Entwicklung.</p>
+        <a class="hero__source-note" href="#qualitaetssicherung">Unabhängiges Lernangebot · Hinweise zu Quellen &amp; Qualität</a>
       </div>
-
-      <p class="hero__effort" aria-label="Geschätzter Lernaufwand">
-        <span aria-hidden="true">⏱️</span>
-        <strong>ca. 4 Wochen bei 4 Std./Woche</strong> (≈16 Zeitstunden) –
-        abgeleitet aus 157 Lerninhalten (≈105 Min. Lesezeit bei 200 Wörtern/Min.),
-        20 Hands-on Labs (≈30 Min./Lab) und dem 75-Fragen-Prüfungssimulator.
-      </p>
-
-      <ul class="skill-tags" aria-label="Geprüfte Kompetenzbereiche (Prüfungsdomänen)">
-        <li><a class="skill-tag" href="#d1" data-domain="d1">Agenten planen &amp; konfigurieren <span class="skill-tag__weight">30–35%</span></a></li>
-        <li><a class="skill-tag" href="#d2" data-domain="d2">Agenten integrieren &amp; erweitern <span class="skill-tag__weight">40–45%</span></a></li>
-        <li><a class="skill-tag" href="#d3" data-domain="d3">Agenten testen &amp; verwalten <span class="skill-tag__weight">20–25%</span></a></li>
-      </ul>
-
-      <p class="hero__quality-metric" aria-label="Vertrauensnachweis: verifizierte interne Qualitätskennzahlen statt Nutzerbewertungen">
-        <span class="quality-metric__icon" aria-hidden="true">✓</span>
-        <strong>157 von 157</strong> Lerninhalten mit verifizierter Microsoft-Learn-Quelle · <strong>7/7</strong> automatisierte QA-Prüfpunkte bestanden
-        <a href="#qualitaetssicherung" class="hero__quality-link">Details zur Qualitätssicherung ↓</a>
-      </p>
-
-      <div class="hero__actions">
-        <a href="#lernpfad" class="btn btn--primary">Jetzt lernen</a>
-        <a href="#simulator" class="btn btn--secondary">Prüfung simulieren</a>
-      </div>
+      <figure class="hero__illustration">
+        <img src="assets/images/agent-learning-path.svg" width="580" height="460" alt="" fetchpriority="high">
+        <figcaption>Verstehen. Verbinden. In der Praxis anwenden.</figcaption>
+      </figure>
     </div>
-
+    <div class="hero__learning-strip" aria-label="Ihr Lernangebot">
+      <p><strong>157 Lerninhalte</strong><span>in drei Prüfungsdomänen</span></p>
+      <p><strong>20 Hands-on Labs</strong><span>am durchgängigen Contoso-Szenario</span></p>
+      <p><strong>Prüfungssimulator</strong><span>mit 75 Übungsfragen im Pool</span></p>
+    </div>
     <div class="hero__layout content-with-sidebar">
       <div class="hero__main">
-        <p>
-          Die Prüfung AB-620 richtet sich an Personen, die KI-Agenten mit Microsoft Copilot Studio entwerfen,
-          erstellen und in bestehende Geschäftsprozesse integrieren. Diese Plattform bündelt die relevanten
-          Inhalte kompakt und praxisnah, damit Sie gezielt und effizient lernen können.
-        </p>
+        <p class="section-kicker">Ihr Weg zur Vorbereitung</p>
+        <h2>Drei Kompetenzbereiche. Ein klarer Lernpfad.</h2>
+        <ul class="skill-tags" aria-label="Kompetenzbereiche und Prüfungsgewichtung">
+          <li><a class="skill-tag" href="#domain-title-d1" data-domain="d1">Planen &amp; konfigurieren <span class="skill-tag__weight">30–35%</span><span aria-hidden="true">↗</span></a></li>
+          <li><a class="skill-tag" href="#domain-title-d2" data-domain="d2">Integrieren &amp; erweitern <span class="skill-tag__weight">40–45%</span><span aria-hidden="true">↗</span></a></li>
+          <li><a class="skill-tag" href="#domain-title-d3" data-domain="d3">Testen &amp; verwalten <span class="skill-tag__weight">20–25%</span><span aria-hidden="true">↗</span></a></li>
+        </ul>
+        <details class="hero__study-details">
+          <summary>Prüfungsrahmen &amp; Zeitplanung</summary>
+          <p><strong>Microsoft AB-620:</strong> Designing and Building Integrated AI Agent Solutions in Copilot Studio. Agenten entwerfen, erstellen und in Geschäftsprozesse integrieren.</p>
+          <p>Orientierung zur Prüfung: ca. 60 Minuten, Bestehensgrenze 700/1000 Punkte. Maßgeblich sind die aktuellen Angaben im <a href="https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/ab-620" target="_blank" rel="noopener noreferrer">offiziellen Study Guide</a>.</p>
+          <p>Planungsbeispiel: ca. 4 Wochen bei 4 Stunden pro Woche (≈16 Stunden). Grobe Schätzung aus Lesezeit, ca. 30 Minuten je Lab und Prüfungstraining; Ihr Aufwand hängt von Vorkenntnissen und Übungstiefe ab.</p>
+        </details>
       </div>
       <aside class="sidebar-card" aria-labelledby="sidebar-progress-title">
         <h2 id="sidebar-progress-title">Ihr Fortschritt</h2>
@@ -90,25 +85,21 @@
           <div id="dashboard-progress" class="score-ring" role="status" aria-live="polite" style="--pct:0">
             <span class="score-ring__value">0%</span>
           </div>
-          <p id="sidebar-progress-stat" style="margin:0;">0 von 19 Unterthemen gelernt (157 Lerninhalte gesamt, 20 Labs)</p>
+          <p id="sidebar-progress-stat">0 von 19 Unterthemen gelernt (157 Lerninhalte gesamt, 20 Labs)</p>
         </div>
-        <h3>Was Sie lernen werden</h3>
-        <ul class="learn-list">
-          <li><span class="check" aria-hidden="true">✓</span> Agenten planen und konfigurieren <strong>(30–35%)</strong></li>
-          <li><span class="check" aria-hidden="true">✓</span> Agenten in Copilot Studio integrieren und erweitern <strong>(40–45%)</strong></li>
-          <li><span class="check" aria-hidden="true">✓</span> Agenten testen und verwalten <strong>(20–25%)</strong></li>
-        </ul>
+        <p class="sidebar-card__note">Ihr Lernstand wird lokal in diesem Browser gespeichert.</p>
+        <a href="#lernpfad">Zum Lernpfad <span aria-hidden="true">→</span></a>
       </aside>
     </div>
   </section>
 
   <section id="lernpfad" class="section" aria-labelledby="lernpfad-title">
-    <h2 id="lernpfad-title">Lernpfad</h2>
+    <p class="section-kicker">01 · Wissen aufbauen</p>
+    <h2 id="lernpfad-title">Ihr Lernpfad für AB-620</h2>
     <p>
-      Der Lernpfad gliedert die 157 quellenbelegten Lerninhalte in 19 Unterthemen entlang der drei offiziellen
-      Prüfungsdomänen. Jedes Unterthema ist als aufklappbares Akkordeon mit den zugehörigen Lerninhalten samt
-      Quellenangabe organisiert. Nutzen Sie die Suche, um gezielt nach Themen wie Authentifizierung, Konnektoren
-      oder Sicherheitsrichtlinien zu suchen.
+      Lernen Sie entlang der drei Prüfungsdomänen: 157 Lerninhalte mit Quellenlinks, gegliedert in 19 Unterthemen.
+      Öffnen Sie eine Domäne und starten Sie die geführten Lernkarten. Mit der Suche finden Sie gezielt Themen
+      wie Authentifizierung, Konnektoren oder Sicherheitsrichtlinien.
     </p>
     <div class="search-field">
       <label for="search-input">Lerninhalte durchsuchen</label>
@@ -120,6 +111,7 @@
   </section>
 
   <section id="hands-on-labs" class="section" aria-labelledby="labs-title">
+    <p class="section-kicker">02 · In die Praxis gehen</p>
     <h2 id="labs-title">Hands-on Labs</h2>
     <p class="labs-lead">
       Theorie allein reicht für AB-620 nicht aus. In dieser Lernstrecke bauen Sie einen durchgängigen
@@ -171,7 +163,8 @@
   </section>
 
   <section id="simulator" class="section" aria-labelledby="simulator-title">
-    <h2 id="simulator-title">Prüfungssimulator</h2>
+    <p class="section-kicker">03 · Wissen überprüfen</p>
+    <h2 id="simulator-title">Bereit für die Prüfung?</h2>
     <div id="exam-container" class="exam-shell">
       <div class="exam-intro">
         <p>
@@ -202,76 +195,29 @@
   </section>
 
   <section id="qualitaetssicherung" class="section" aria-labelledby="qa-title">
-    <h2 id="qa-title">Qualitätssicherung</h2>
-    <p>
-      Transparenz gehört zu einer verlässlichen Lernplattform. Die folgende Tabelle dokumentiert die tatsächlich
-      durchgeführten Qualitätsprüfungen dieser Version mit nachvollziehbaren Ergebnissen.
-    </p>
-    <div class="table-scroll">
-    <table class="data-table">
-      <caption class="sr-only">QA-Prüfpunkte und Status</caption>
-      <thead>
-        <tr>
-          <th scope="col">Prüfpunkt</th>
-          <th scope="col">Methode</th>
-          <th scope="col">Status</th>
-          <th scope="col">Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Inhaltliche Abdeckung aller 3 Domänen</td>
-          <td>Automatisierte Zählung + Abgleich mit Skills-Outline</td>
-          <td><span class="status-pill status-pill--pass">Bestanden</span></td>
-          <td>19 Unterthemen mit 157 Lerninhalten + 20 verbundene Labs + 75 Prüfungsfragen über alle Domänen verteilt (30–35% / 40–45% / 20–25%).</td>
-        </tr>
-        <tr>
-          <td>Anzahl und Struktur der Testfragen</td>
-          <td>Node-Skript prüft Optionsanzahl, correctIndex-Gültigkeit, Pflichtfelder</td>
-          <td><span class="status-pill status-pill--pass">Bestanden</span></td>
-          <td>75 Fragen im examBank, je 4 Optionen, gültiger correctIndex, Erklärung + Microsoft-Learn-Link vorhanden.</td>
-        </tr>
-        <tr>
-          <td>JavaScript-Syntaxvalidierung</td>
-          <td><code>node --check</code> auf content.js und app.js</td>
-          <td><span class="status-pill status-pill--pass">Bestanden</span></td>
-          <td>Beide Dateien ohne Syntaxfehler geladen und inhaltlich per Node-VM gegen das Schema geprüft.</td>
-        </tr>
-        <tr>
-          <td>Barrierefreiheit (Tastatur &amp; ARIA)</td>
-          <td>Manuelle Codeprüfung + jsdom-Test: Skip-Link, aria-live, Radiogroup-Pattern, Fokus-Reihenfolge</td>
-          <td><span class="status-pill status-pill--pass">Bestanden</span></td>
-          <td>Skip-Link vorhanden, role="radiogroup" mit Pfeiltasten-Navigation im Exam-Simulator, aria-announcer für Statusmeldungen.</td>
-        </tr>
-        <tr>
-          <td>Cross-Theme Kontrast (Hell/Dunkel/Hoher Kontrast)</td>
-          <td>Prüfung der CSS Custom Properties je Theme auf Mindestkontrast</td>
-          <td><span class="status-pill status-pill--pass">Bestanden</span></td>
-          <td>Alle Textfarben über Tokens gesteuert; High-Contrast-Theme nutzt reines Schwarz/Weiß mit Gelb (#FFFF00) als Fokusfarbe.</td>
-        </tr>
-        <tr>
-          <td>Mobile-First Responsiveness</td>
-          <td>Prüfung der Breakpoints (Basis &lt; 600px, 600px, 1024px)</td>
-          <td><span class="status-pill status-pill--pass">Bestanden</span></td>
-          <td>Sidebar wird erst ab 1024px zweispaltig, Navigation ab 1024px sichtbar, Lab-Karten ab 600px zweispaltig.</td>
-        </tr>
-        <tr>
-          <td>Funktionstest Prüfungssimulator und Lernpfad (echter jsdom-Browsertest)</td>
-          <td>Automatisiertes jsdom-Skript: DOM-Rendering, Klick-Events, Theme-Wechsel, Suche</td>
-          <td><span class="status-pill status-pill--pass">Bestanden</span></td>
-          <td>19 Unterthema-Akkordeons gerendert, Akkordeon-Klick zeigt Lerninhalte, Exam-Start zeigt Frage aus dem 75er-Pool, Theme-Wechsel ändert data-theme, Suche filtert Lerninhalte – alles per echtem DOM-Event verifiziert.</td>
-        </tr>
-      </tbody>
-    </table>
+    <p class="section-kicker">Transparent lernen</p>
+    <h2 id="qa-title">Quellen &amp; Qualität</h2>
+    <p>Dieses unabhängige Lernangebot unterstützt Ihre Vorbereitung. Quellenlinks helfen beim Nachlesen; sie sind kein Nachweis einer fachlichen Prüfung oder einer Freigabe durch Microsoft.</p>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Hinweise zu Quellen und Prüfstatus, horizontal scrollbar">
+      <table class="data-table">
+        <caption class="sr-only">Umfang und Grenzen der Qualitätssicherung</caption>
+        <thead><tr><th scope="col">Bereich</th><th scope="col">Status</th><th scope="col">Was das bedeutet</th></tr></thead>
+        <tbody>
+          <tr><td>Lerninhalte &amp; Referenzen</td><td><span class="status-pill">Quellen verlinkt</span></td><td>Lernkarten und Labs verweisen auf Microsoft Learn. Vollständigkeit, Aktualität und fachliche Richtigkeit sind damit nicht unabhängig bestätigt.</td></tr>
+          <tr><td>Prüfungstraining</td><td><span class="status-pill">Übungsmaterial</span></td><td>Die Fragen dienen der Vorbereitung; sie sind keine offiziellen Prüfungsfragen. Das Simulationsergebnis garantiert kein Bestehen.</td></tr>
+          <tr><td>Technische Qualität</td><td><span class="status-pill">Keine Gesamtfreigabe</span></td><td>Einzelne Funktions- oder Darstellungstests ersetzen keine vollständige Prüfung aller Browser, Inhalte und Bedienhilfen. Diese Tabelle ist kein automatisierter Live-Testbericht.</td></tr>
+          <tr><td>Barrierefreiheit &amp; Darstellung</td><td><span class="status-pill">Prüfung nicht abgeschlossen</span></td><td>Farbschemata, Tastaturbedienung und responsive Ansichten sind vorgesehen. Eine umfassende WCAG-Konformitätsprüfung steht aus.</td></tr>
+        </tbody>
+      </table>
     </div>
-    <div class="alert alert--info">
-      <strong>Hinweis zur Transparenz:</strong>&nbsp;Diese Seite wurde durch mehrere spezialisierte KI-Agenten arbeitsteilig erstellt (Content, CSS, HTML) und anschließend durch eine manuelle Integrations- und Qualitätsprüfung konsolidiert.
-    </div>
+    <p class="qa-note"><strong>Zur Einordnung:</strong> Die Plattform wurde mit Unterstützung von KI-Agenten erstellt. Prüfen Sie wichtige fachliche Aussagen anhand der verlinkten Dokumentation und orientieren Sie Ihre Prüfungsvorbereitung am aktuellen offiziellen Study Guide.</p>
   </section>
 
 </main>
 
 <footer class="site-footer">
+  <h2>Auch offline weiterlernen.</h2>
+  <p class="site-footer__intro">Handbuch, Labs und Prüfungstraining zum Mitnehmen.</p>
   <p>&copy; 2026 AB-620 Prüfungsvorbereitung. Kein offizielles Microsoft-Produkt.</p>
   <nav aria-label="Weiterführende Links">
     <ul>
@@ -284,7 +230,7 @@
   </nav>
 </footer>
 
-<script src="assets/data/content.js?v=20260822-lab-accordion"></script>
-<script src="assets/js/app.js?v=20260822-lab-accordion"></script>
+<script src="assets/data/content.js?v=whizlabs-r1"></script>
+<script src="assets/js/app.js?v=whizlabs-r1"></script>
 </body>
 </html>

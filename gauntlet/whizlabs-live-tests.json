@@ -1,0 +1,185 @@
+{
+  "base": "https://snat.ovh/AB-620-beta/",
+  "results": [
+    {
+      "name": "domains closed initially",
+      "pass": true
+    },
+    {
+      "name": "d1: every full learning text reachable",
+      "pass": true,
+      "details": 53
+    },
+    {
+      "name": "d1: truthful end-of-domain message",
+      "pass": true
+    },
+    {
+      "name": "d2: every full learning text reachable",
+      "pass": true,
+      "details": 54
+    },
+    {
+      "name": "d2: truthful end-of-domain message",
+      "pass": true
+    },
+    {
+      "name": "d3: every full learning text reachable",
+      "pass": true,
+      "details": 50
+    },
+    {
+      "name": "d3: truthful end-of-domain message",
+      "pass": true
+    },
+    {
+      "name": "all learning IDs exactly once",
+      "pass": true,
+      "details": {
+        "seen": 157,
+        "expected": 157
+      }
+    },
+    {
+      "name": "reading pane keyboard focusable",
+      "pass": true
+    },
+    {
+      "name": "mark read persists",
+      "pass": true
+    },
+    {
+      "name": "domain progress updates without reload",
+      "pass": true
+    },
+    {
+      "name": "domain shortcut opens target",
+      "pass": true
+    },
+    {
+      "name": "every stored lab Learn link rendered",
+      "pass": true
+    },
+    {
+      "name": "lab completion retains open card and keyboard focus",
+      "pass": true
+    },
+    {
+      "name": "lab total updates",
+      "pass": true
+    },
+    {
+      "name": "search shows learning text",
+      "pass": true
+    },
+    {
+      "name": "exam answer retained",
+      "pass": true
+    },
+    {
+      "name": "all-correct exam passes",
+      "pass": true
+    },
+    {
+      "name": "review grouped and collapsed",
+      "pass": true
+    },
+    {
+      "name": "no bogus weight-as-pass-target legend",
+      "pass": true
+    },
+    {
+      "name": "1440: no horizontal page overflow",
+      "pass": true
+    },
+    {
+      "name": "1440: text start/end reachable",
+      "pass": true,
+      "details": {
+        "client": 430,
+        "scroll": 509,
+        "scrollable": true,
+        "titleReachable": true,
+        "style": "auto"
+      }
+    },
+    {
+      "name": "390: no horizontal page overflow",
+      "pass": true
+    },
+    {
+      "name": "390: text start/end reachable",
+      "pass": true,
+      "details": {
+        "client": 952,
+        "scroll": 952,
+        "scrollable": false,
+        "titleReachable": true,
+        "style": "visible"
+      }
+    },
+    {
+      "name": "320: no horizontal page overflow",
+      "pass": true
+    },
+    {
+      "name": "320: text start/end reachable",
+      "pass": true,
+      "details": {
+        "client": 1260,
+        "scroll": 1260,
+        "scrollable": false,
+        "titleReachable": true,
+        "style": "visible"
+      }
+    },
+    {
+      "name": "844: no horizontal page overflow",
+      "pass": true
+    },
+    {
+      "name": "844: text start/end reachable",
+      "pass": true,
+      "details": {
+        "client": 476,
+        "scroll": 476,
+        "scrollable": false,
+        "titleReachable": true,
+        "style": "visible"
+      }
+    },
+    {
+      "name": "720: no horizontal page overflow",
+      "pass": true
+    },
+    {
+      "name": "720: text start/end reachable",
+      "pass": true,
+      "details": {
+        "client": 498,
+        "scroll": 498,
+        "scrollable": false,
+        "titleReachable": true,
+        "style": "visible"
+      }
+    },
+    {
+      "name": "theme dark applied",
+      "pass": true
+    },
+    {
+      "name": "theme high-contrast applied",
+      "pass": true
+    },
+    {
+      "name": "theme light applied",
+      "pass": true
+    },
+    {
+      "name": "no runtime page errors",
+      "pass": true,
+      "details": []
+    }
+  ],
+  "errors": []
+}

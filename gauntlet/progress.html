@@ -1,60 +1,11 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>Gauntlet Loop — AB-620 vs. Coursera Bar — Live Progress</title>
-<style>
-  body { font-family: -apple-system, system-ui, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; background: #0d1117; color: #c9d1d9; }
-  h1 { color: #58a6ff; }
-  h2 { color: #79c0ff; border-bottom: 1px solid #30363d; padding-bottom: 6px; margin-top: 40px; }
-  .piece { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 12px 0; }
-  .piece h3 { margin: 0 0 8px 0; color: #e6edf3; }
-  .status { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
-  .status.pending { background: #30363d; color: #8b949e; }
-  .status.building { background: #9e6a03; color: #fff; }
-  .status.critiquing { background: #1f6feb; color: #fff; }
-  .status.wins { background: #238636; color: #fff; }
-  .round-log { font-size: 0.9em; color: #8b949e; margin-top: 8px; }
-  .gap { color: #f85149; }
-  .meta { color: #8b949e; font-size: 0.85em; }
-</style>
-</head>
-<body>
-  <h1>🎯 Gauntlet Loop: AB-620 Lernplattform vs. Coursera Bar</h1>
-  <p class="meta">Zuletzt aktualisiert: <span id="ts">wird beim Update gesetzt</span></p>
-  <p>Ziel: AB-620-Lernplattform auf das Niveau der besten Coursera-Kurse bringen.
-     Qualitätsbar: <a href="reference/BAR.md">Coursera-Kursseiten-Struktur (siehe BAR.md)</a>.
-     Jedes Stück wird von einem Builder-Subagenten gebaut und von einem separaten,
-     frischen Kritiker-Subagenten blind gegen die Bar geprüft, bis es überzeugt oder
-     der Nutzer stoppt.</p>
-
-  <h2>Stücke &amp; Status</h2>
-  <div id="pieces">
-    <div class="piece"><h3>1. Hero/Übersichtsbereich</h3><span class="status wins">✓ WINS (Runde 2)</span>
-      <p class="round-log">Ehrliche Vertrauensmetrik "157 von 157 Lerninhalten mit verifizierter MS-Learn-Quelle" statt erfundener Sterne/Reviews. Kritiker hat Zahl selbst gegen content.js nachgezählt.</p></div>
-    <div class="piece"><h3>2. Domänen-Übersichtskarten</h3><span class="status wins">✓ WINS (Runde 2)</span>
-      <p class="round-log">"X Lerninhalte • Y Labs • Z Prüfungsfragen" pro Domäne + Lesezeit + Fortschrittsbalken. Kritiker hat Feldnamen (domain vs. domainId) und Zählungen selbst verifiziert.</p></div>
-    <div class="piece"><h3>3. Presenter-Lernkarte</h3><span class="status wins">✓ WINS (Runde 2)</span>
-      <p class="round-log">Modul-Gesamtkontext ("X Lerninhalte in diesem Unterthema • ~Y Min. Gesamtlesezeit") über der Karte, echte Wortzähl-Summe, korrekt gestylt.</p></div>
-    <div class="piece"><h3>4. Prüfungssimulator Start/Ergebnis</h3><span class="status wins">✓ WINS (Runde 2)</span>
-      <p class="round-log">Fakten-Kacheln vor Start (Fragenzahl/Zeit/Bestehensgrenze), Domänen-Gewichtungsvergleich im Ergebnis, Review jetzt Progressive-Disclosure-Accordion pro Domäne (standardmäßig zugeklappt).</p></div>
-    <div class="piece"><h3>5. Hands-on-Labs-Darstellung</h3><span class="status wins">✓ WINS (Runde 2)</span>
-      <p class="round-log">Content-Typ-Badge ("X Schritte • 1 Code-Beispiel") sichtbar vor dem Aufklappen, transparente Zeitschätzungs-Heuristik.</p></div>
-  </div>
-
-  <h2>Rundenprotokoll</h2>
-  <div id="log">
-    <p class="round-log"><strong>Runde 2 Kritiker-Urteil (alle 5, unabhängig, frischer Kontext, blind):</strong>
-    Alle 5 Stücke WINS. Jeder Kritiker hat die verwendeten Zahlen eigenständig gegen content.js
-    nachgerechnet (keine Fake-Daten gefunden). Alle 5 Verbesserungen wurden konfliktfrei in eine
-    gemeinsame Version gemergt und per jsdom-Test erneut gemeinsam verifiziert (9/9 bestanden).</p>
-    <p class="round-log"><strong>Status:</strong> Runde-2-Gewinner sind auf dem beta-Branch committed.
-    Der Gauntlet Loop kann hier vom Nutzer als "gut genug" akzeptiert oder mit einer neuen,
-    härteren Runde (z.B. Skill-Tag-Chips auf Lab-Ebene, Sternebewertungs-Analogon global) fortgesetzt werden.</p>
-  </div>
-
-  <script>
-    document.getElementById('ts').textContent = new Date().toISOString();
-  </script>
-</body>
-</html>
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AB-620 Beta · Redesign-Status</title><style>body{font:17px/1.6 system-ui;background:#faf8f5;color:#202c36;max-width:820px;margin:3rem auto;padding:0 1.2rem}h1{line-height:1.1}a{color:#a83d0c}li{margin:.7rem 0}small{color:#59636e}</style></head><body><main>
+<small>AB-620 · BETA · WHIZLABS-REDESIGN</small><h1>Neue Oberfläche. Gleiche Lerninhalte.</h1>
+<p>Stand: 8. September 2026 · Ein abgeschlossener Verbesserungszyklus dieses Batches.</p>
+<ol><li><strong>Referenz und Ausgangszustand:</strong> alte Beta in Chromium aufgenommen. Whizlabs-Seitenauszug, originales Hero-Bild und teilweise gerendertes Archiv vom 4. August 2026 untersucht.</li><li><strong>Zwei Builder:</strong> getrennte Dateien für Startbereich und Lernoberfläche; eigene SVG-Illustration, gemeinsame Farb- und Layoutregeln.</li><li><strong>Integration:</strong> Lesebereich, Quellen, Navigation, Fortschritt und Simulator im Browser geprüft. Bestehende Fehler bei Lab-Quellenlinks, Tastaturfokus, Fortschrittsanzeige und Prüfungsgewichtung korrigiert.</li><li><strong>Unabhängiger Kritiker:</strong> PASS für den abgegrenzten optischen Redesign-Auftrag; keine nachgewiesenen Release-Blocker. Desktop/Mobile, Touch, Tastatur, Quellen und Themes selbst geprüft.</li><li><strong>Öffentliche Beta:</strong> 34 Chromium-Prüfungen bestanden, 0 fehlgeschlagen. Alle 157 Lerntexte durchgeblättert und mit den tatsächlichen Daten verglichen; Quellenlinks aller Labs im DOM vorhanden.</li></ol>
+<p><a href="../">Neue Beta öffnen →</a></p>
+<h2>Was geprüft wurde</h2><p>Geschlossene Domänen beim Start, alle Lerninhalte, Weiter/Zurück/Übersicht, Lesestatus, Lab-Fortschritt, Suche, gespeicherte Prüfungsantworten, Auswertung und Review, Themes sowie Überlauf bei 320, 390, 720, 844 und 1440 Pixeln Breite. Datenbasis und Quellen wurden nicht umgeschrieben.</p>
+<h2>Grenzen und offener Feinschliff</h2><p>Whizlabs blockiert den Live-Testbrowser. Das verwendete Archiv enthält fehlende Bilder und ist nicht die aktuelle Live-Seite. Der Vergleich war <strong>nicht blind</strong>; keine Behauptung „besser als Whizlabs“. Der Kritiker nennt einen kompakteren mobilen Header als optionalen Feinschliff.</p><p>Getestet wurde Chromium, nicht Safari auf einem echten iPhone/Mac. Dies ist weder eine vollständige WCAG-Zertifizierung noch eine erneute fachliche Prüfung sämtlicher Microsoft-Learn-Aussagen. Frühere „WINS“-Urteile aus Codeprüfungen waren keine blinden visuellen Vergleiche.</p>
+<p>Nur <code>beta</code> und <code>/AB-620-beta/</code>. <code>main</code> und das Haupt-Deployment bleiben unverändert.</p>
+<p><a href="https://github.com/pkostelnik/AB-620/tree/beta">Beta-Branch und Nachweise</a></p>
+</main></body></html>
