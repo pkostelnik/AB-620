@@ -121,6 +121,19 @@
           " Unterthemen gelernt (" + AB620_CONTENT.learningItems.length + " Lerninhalte gesamt, " +
           AB620_CONTENT.labs.length + " Labs)";
       }
+      document.querySelectorAll('.domain-accordion').forEach(el => {
+        const subs = AB620_CONTENT.subDomains.filter(sd => sd.domainId === el.dataset.domainId);
+        const done = subs.filter(sd => ProgressTracker.isSubDomainRead(sd.id)).length;
+        const value = subs.length ? Math.round(done / subs.length * 100) : 0;
+        const bar = el.querySelector('.domain-progress');
+        if (bar) bar.setAttribute('aria-valuenow', value);
+        const fill = el.querySelector('.domain-progress__fill');
+        if (fill) fill.style.width = value + '%';
+        const label = el.querySelector('.domain-progress__label');
+        if (label) label.textContent = value + '% als gelesen markiert';
+        const stat = el.querySelector('.domain-read-stat');
+        if (stat) stat.textContent = `${done} von ${subs.length} Unterthemen als gelesen markiert`;
+      });
     }
   };
 
@@ -134,6 +147,16 @@
   function domainLabel(domainId) {
     const d = AB620_CONTENT.domains.find(x => x.id === domainId);
     return d ? d.title : domainId;
+  }
+
+  // Parst "30-35%" oder "20%" zu einem Mittelwert (Zahl). Fällt auf null zurück, wenn nicht parsbar.
+  function domainWeightMidpoint(domainId) {
+    const d = AB620_CONTENT.domains.find(x => x.id === domainId);
+    if (!d || !d.weightPercent) return null;
+    const nums = String(d.weightPercent).match(/\d+(\.\d+)?/g);
+    if (!nums || !nums.length) return null;
+    const values = nums.map(Number);
+    return values.reduce((a, b) => a + b, 0) / values.length;
   }
 
   function subDomainLabel(subDomainId) {
@@ -161,9 +184,42 @@
       return;
     }
 
+    /* Echtes Quellen-Vertrauenssignal + Priorisierungsempfehlung pro Domäne:
+       - Vertrauenssignal: Anzahl EINDEUTIGER sourceUrl-Werte der Lerninhalte je Domäne (new Set(...).size),
+         keine geschätzte oder erfundene Zahl.
+       - Priorisierung: die Domäne mit dem niedrigsten Fortschritt (%) bekommt eine "zuerst hier starten"-Empfehlung,
+         aber NUR solange noch keine Domäne vollständig (100%) gelesen ist. */
+    const domainStatsById = {};
+    AB620_CONTENT.domains.forEach(domain => {
+      const subDomainsForDomain = AB620_CONTENT.subDomains.filter(sd => sd.domainId === domain.id);
+      const readSubDomainsForDomain = subDomainsForDomain.filter(sd => ProgressTracker.isSubDomainRead(sd.id)).length;
+      const percent = subDomainsForDomain.length === 0 ? 0 : Math.round((readSubDomainsForDomain / subDomainsForDomain.length) * 100);
+      const uniqueSourceCount = new Set(
+        AB620_CONTENT.learningItems.filter(it => it.domainId === domain.id).map(it => it.sourceUrl)
+      ).size;
+      domainStatsById[domain.id] = { percent, uniqueSourceCount };
+    });
+    const anyDomainFullyRead = Object.values(domainStatsById).some(s => s.percent === 100);
+    let recommendedDomainId = null;
+    if (!anyDomainFullyRead) {
+      let lowest = null;
+      AB620_CONTENT.domains.forEach(domain => {
+        const p = domainStatsById[domain.id].percent;
+        if (lowest === null || p < lowest.percent) {
+          lowest = { id: domain.id, percent: p };
+        }
+      });
+      if (lowest) recommendedDomainId = lowest.id;
+    }
+
     const html = AB620_CONTENT.domains.map(domain => {
       const subDomains = AB620_CONTENT.subDomains.filter(sd => sd.domainId === domain.id);
       const domainItemCount = AB620_CONTENT.learningItems.filter(it => it.domainId === domain.id).length;
+      const domainSourceCount = domainStatsById[domain.id].uniqueSourceCount;
+      const trustBadgeHtml = `<span class="badge domain-trust-badge" title="Basierend auf ${domainSourceCount} eindeutigen offiziellen Microsoft-Learn-Quellen">Basierend auf ${domainSourceCount} offiziellen Microsoft-Learn-Quellen</span>`;
+      const recommendationBadgeHtml = domain.id === recommendedDomainId
+        ? `<span class="badge domain-recommendation-badge" title="Niedrigster Fortschritt aller Domänen">⭐ Empfehlung: zuerst hier starten</span>`
+        : "";
 
       /* -------- Suchmodus: klassische Akkordeon-Liste (Übersicht/Presenter ergibt bei Filtern keinen Sinn) -------- */
       if (filter) {
@@ -201,6 +257,7 @@
               <span class="domain-accordion__title-group">
                 <h3 id="domain-title-${domain.id}" style="margin:0;">${escapeHtml(domain.title)} <span class="badge">${escapeHtml(domain.weightPercent)}</span></h3>
                 <span class="module-card__meta">Suchtreffer in dieser Domäne</span>
+                <span class="domain-badges">${trustBadgeHtml}${recommendationBadgeHtml}</span>
               </span>
               <svg class="module-card__chevron domain-accordion__chevron" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -220,14 +277,38 @@
       const state = PresenterState[domain.id];
       const readSubDomains = subDomains.filter(sd => ProgressTracker.isSubDomainRead(sd.id)).length;
 
+      /* Coursera-artige Lesezeit-Schätzung: echte content-Textlänge aller
+         Lerninhalte der Domäne, ~200 Wörter/Minute (Standard-Lesegeschwindigkeit). */
+      const domainWordCount = AB620_CONTENT.learningItems
+        .filter(it => it.domainId === domain.id)
+        .reduce((sum, it) => sum + String(it.content || "").trim().split(/\s+/).filter(Boolean).length, 0);
+      const readingMinutes = Math.max(1, Math.round(domainWordCount / 200));
+
+      /* Echte Content-Typ-Aufschlüsselung pro Domäne (Coursera-Vorbild: "20 videos • 1 reading • 3 assignments").
+         Labs tragen domainId direkt; examBank-Fragen tragen ein "domain"-Feld. Beide werden hier nach der
+         tatsächlichen AB-620-Datenstruktur gezählt statt einer pauschalen Lerninhalte-Zahl. */
+      const domainLabCount = (AB620_CONTENT.labs || []).filter(lab => lab.domainId === domain.id).length;
+      const domainExamCount = (AB620_CONTENT.examBank || []).filter(q => q.domain === domain.id).length;
+      const contentBreakdown = `${domainItemCount} Lerninhalte • ${domainLabCount} Labs • ${domainExamCount} Prüfungsfragen`;
+
+      /* Fortschrittsbalken pro Domäne: Anteil gelesener Unterthemen dieser Domäne. */
+      const domainPercent = subDomains.length === 0 ? 0 : Math.round((readSubDomains / subDomains.length) * 100);
+
       const overviewHtml = `
         <div class="domain-overview" data-domain-id="${domain.id}" ${state.active ? 'hidden' : ""}>
           <p>${escapeHtml(domain.description)}</p>
           <ul class="domain-overview__stats">
             <li>${subDomains.length} Unterthemen</li>
-            <li>${domainItemCount} Lerninhalte</li>
-            <li>${readSubDomains} von ${subDomains.length} Unterthemen als gelesen markiert</li>
+            <li>${contentBreakdown}</li>
+            <li>~${readingMinutes} Min. Lesezeit</li>
+            <li class="domain-read-stat">${readSubDomains} von ${subDomains.length} Unterthemen als gelesen markiert</li>
           </ul>
+          <div class="domain-progress" role="progressbar" aria-valuenow="${domainPercent}" aria-valuemin="0" aria-valuemax="100" aria-label="Fortschritt in Domäne ${escapeHtml(domain.title)}">
+            <div class="domain-progress__track">
+              <div class="domain-progress__fill" style="width: ${domainPercent}%;"></div>
+            </div>
+            <span class="domain-progress__label">${domainPercent}% abgeschlossen</span>
+          </div>
           <button type="button" class="btn btn--primary domain-presenter-start-btn" data-domain-id="${domain.id}">
             Weiter →
           </button>
@@ -243,7 +324,8 @@
           <summary class="domain-accordion__header" aria-label="Domäne ${escapeHtml(domain.title)} auf-/zuklappen">
             <span class="domain-accordion__title-group">
               <h3 id="domain-title-${domain.id}" style="margin:0;">${escapeHtml(domain.title)} <span class="badge">${escapeHtml(domain.weightPercent)}</span></h3>
-              <span class="module-card__meta">${subDomains.length} Unterthemen · ${domainItemCount} Lerninhalte</span>
+              <span class="module-card__meta">${subDomains.length} Unterthemen · ${contentBreakdown}</span>
+              <span class="domain-badges">${trustBadgeHtml}${recommendationBadgeHtml}</span>
             </span>
             <svg class="module-card__chevron domain-accordion__chevron" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -331,31 +413,76 @@
     const item = flatItems[state.index];
     const isFirst = state.index === 0;
     const isLast = state.index === total - 1;
+    const progressPct = Math.round(((state.index + 1) / total) * 100);
+    const wordCount = (item.content || "").trim().split(/\s+/).filter(Boolean).length;
+    const readMinutes = Math.max(1, Math.round(wordCount / 200));
+    const readTimeLabel = "~" + readMinutes + " Min. Lesezeit";
+
+    const subDomainItems = flatItems.filter(it => it.subDomainId === item.subDomainId);
+    const subDomainCount = subDomainItems.length;
+    const subDomainTotalMinutes = subDomainItems.reduce((sum, it) => {
+      const wc = (it.content || "").trim().split(/\s+/).filter(Boolean).length;
+      return sum + Math.max(1, Math.round(wc / 200));
+    }, 0);
+    const moduleOverviewLabel = subDomainCount + " Lerninhalte in diesem Unterthema • ~" + subDomainTotalMinutes + " Min. Gesamtlesezeit";
+
+    /* Direktes "Als gelesen markieren" in der Karte selbst: nutzt dieselbe
+       ProgressTracker-Logik wie der subdomain-read-btn im Übersichts-Screen,
+       damit man dafür nicht mehr zur Übersicht zurück muss. */
+    const isSubDomainRead = ProgressTracker.isSubDomainRead(item.subDomainId);
+    const readBtnLabel = isSubDomainRead ? "✓ Unterthema als gelesen markiert" : "Unterthema als gelesen markieren";
+
+    /* Klarer Abschluss-Zustand: beim letzten Lerninhalt der Sequenz ersetzt eine
+       Abschluss-Meldung den einfach deaktivierten "Weiter"-Button. */
+    const navHtml = isLast
+      ? `
+        <div class="presenter-card__nav">
+          <button type="button" class="btn btn--outline presenter-back-btn" data-domain-id="${domainId}" ${isFirst ? "disabled" : ""}>← Zurück</button>
+          <button type="button" class="btn btn--secondary presenter-overview-btn" data-domain-id="${domainId}">Übersicht</button>
+        </div>
+        <div class="presenter-card__complete alert alert--success" role="status">
+          Ende der Lernkarten dieser Domäne. Den Lesestatus markieren Sie selbst; über „Übersicht“ gelangen Sie zurück.
+        </div>`
+      : `
+        <div class="presenter-card__nav">
+          <button type="button" class="btn btn--outline presenter-back-btn" data-domain-id="${domainId}" ${isFirst ? "disabled" : ""}>← Zurück</button>
+          <button type="button" class="btn btn--secondary presenter-overview-btn" data-domain-id="${domainId}">Übersicht</button>
+          <button type="button" class="btn btn--primary presenter-next-btn" data-domain-id="${domainId}">Weiter →</button>
+        </div>`;
 
     slot.innerHTML = `
+      <div class="presenter-module-overview" aria-label="Modulübersicht">
+        <span class="presenter-module-overview__label">📚 ${escapeHtml(moduleOverviewLabel)}</span>
+      </div>
       <div class="presenter-card" role="group" aria-label="Lerninhalt ${state.index + 1} von ${total}">
+        <div class="presenter-card__progressbar" role="progressbar" aria-label="Position innerhalb der Domäne, nicht Lesestatus" aria-valuenow="${state.index + 1}" aria-valuemin="1" aria-valuemax="${total}">
+          <div class="presenter-card__progressbar-fill" style="width: ${progressPct}%;"></div>
+        </div>
         <div class="presenter-card__progress">
           <span class="presenter-card__counter">Lerninhalt ${state.index + 1} von ${total}</span>
-          <span class="presenter-card__subdomain badge">${escapeHtml(item.subDomainTitle)}</span>
+          <span class="presenter-card__meta">
+            <span class="presenter-card__readtime" title="Geschätzte Lesezeit">⏱ ${readTimeLabel}</span>
+            <span class="presenter-card__subdomain badge">${escapeHtml(item.subDomainTitle)}</span>
+          </span>
         </div>
-        <div class="presenter-card__explanation">
+        <div class="presenter-card__explanation" tabindex="0" role="region" aria-label="Lerninhalt: ${escapeHtml(item.topic)}">
           <h4 class="presenter-card__topic">${escapeHtml(item.topic)}</h4>
           <p class="presenter-card__content">${escapeHtml(item.content)}</p>
         </div>
         <div class="presenter-card__source">
-          <span class="presenter-card__source-label">Quelle</span>
-          <a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.sourceTitle)} ↗</a>
+          <span class="presenter-card__source-label">📖 Quelle</span>
+          <a class="presenter-card__source-link" href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.sourceTitle)} ↗</a>
         </div>
-        <div class="presenter-card__nav">
-          <button type="button" class="btn btn--outline presenter-back-btn" data-domain-id="${domainId}" ${isFirst ? "disabled" : ""}>← Zurück</button>
-          <button type="button" class="btn btn--secondary presenter-overview-btn" data-domain-id="${domainId}">Übersicht</button>
-          <button type="button" class="btn btn--primary presenter-next-btn" data-domain-id="${domainId}" ${isLast ? "disabled" : ""}>Weiter →</button>
+        <div class="presenter-card__actions">
+          <button type="button" class="btn btn--outline subdomain-read-btn" data-subdomain-id="${escapeHtml(item.subDomainId)}" aria-pressed="${isSubDomainRead}">${readBtnLabel}</button>
         </div>
+        ${navHtml}
       </div>`;
 
     const backBtn = slot.querySelector(".presenter-back-btn");
     const nextBtn = slot.querySelector(".presenter-next-btn");
     const overviewBtn = slot.querySelector(".presenter-overview-btn");
+    const readBtn = slot.querySelector(".subdomain-read-btn");
 
     if (backBtn) backBtn.addEventListener("click", () => {
       if (state.index > 0) {
@@ -378,15 +505,60 @@
       if (domainEl) {
         domainEl.querySelector(".domain-overview").hidden = false;
         domainEl.querySelector(".domain-presenter").hidden = true;
+        domainEl.querySelector(".domain-presenter-start-btn").focus({ preventScroll: true });
       }
       Announcer.say("Zurück zur Übersicht: " + domainLabel(domainId));
     });
+    if (readBtn) readBtn.addEventListener("click", () => {
+      const sdId = readBtn.getAttribute("data-subdomain-id");
+      ProgressTracker.markSubDomainRead(sdId);
+      readBtn.textContent = "✓ Als gelesen markiert";
+      readBtn.setAttribute("aria-pressed", "true");
+      Announcer.say("Unterthema als gelesen markiert.");
+    });
+    slot.querySelector('.presenter-card__explanation').focus({ preventScroll: true });
   }
 
   /* ---------------- Lab rendering (20-Lab-Architektur, mit Legacy-Fallbacks) ---------------- */
   const LabViewState = { topic: "", domain: "" };
   function labArray(value) { return Array.isArray(value) ? value : (value == null ? [] : [value]); }
   function labText(value, fallback) { return value == null || value === "" ? (fallback || "") : String(value); }
+
+  /* Grobe, ehrliche Zeitschätzung pro Lab: 5 Minuten je Schritt (aus l.steps.length).
+     Das ist eine bewusst transparente Heuristik, keine gemessene/erfundene Dauer —
+     sie basiert einzig auf der Anzahl der im Lab dokumentierten Schritte. Ein Lab
+     ohne Schritte bekommt einen Mindestwert von 5 Minuten, damit nie "0 Minuten"
+     angezeigt wird. */
+  const MINUTES_PER_STEP = 5;
+  function estimateLabMinutes(stepCount) {
+    return Math.max(MINUTES_PER_STEP, (Number(stepCount) || 0) * MINUTES_PER_STEP);
+  }
+
+  /* Sprache eines Code-Snippets ableiten, damit die Code-Sektion ein sichtbares
+     Sprache-Label bekommt (Coursera-typisch: Inhalt sofort erkennbar, bevor man
+     liest). Bewusst konservativ: nur eindeutige Signaturen erkennen, sonst "Code"
+     als neutraler Fallback statt einer geratenen Sprache. */
+  function detectCodeLanguage(snippet, explicitLanguage) {
+    if (explicitLanguage) return String(explicitLanguage);
+    const s = String(snippet || "").trim();
+    if (!s) return "";
+    if (/^[\[{]/.test(s)) {
+      try { JSON.parse(s); return "JSON"; } catch (e) { /* fällt durch zu weiteren Checks */ }
+    }
+    if (/^(pac|Get-|Set-|New-|Invoke-|Import-|\$[A-Za-z_])/m.test(s)) return "PowerShell";
+    if (/^(az |curl |gh )/m.test(s)) return "Bash";
+    if (/^(SELECT|INSERT|UPDATE|DELETE)\s/im.test(s)) return "KQL/SQL";
+    return "Code";
+  }
+
+  /* Heuristik: Level-Badge nur aus der echten Schrittzahl abgeleitet, keine
+     redaktionelle Einstufung. <=3 Schritte = Einsteiger, 4-6 = Fortgeschritten,
+     >6 = Experte. Transparent als grobe Näherung gekennzeichnet. */
+  function labLevelFromSteps(stepCount) {
+    if (stepCount <= 3) return "Einsteiger";
+    if (stepCount <= 6) return "Fortgeschritten";
+    return "Experte";
+  }
 
   function renderLabs(filterText) {
     const container = document.getElementById("lab-list");
@@ -411,7 +583,11 @@
     const topicSelect = `<label class="lab-filter">Topic <select id="lab-topic-filter" aria-label="Labs nach Topic filtern">${selectOptions(topics, LabViewState.topic, "Topics")}</select></label>`;
     const domainSelect = `<label class="lab-filter">Domäne <select id="lab-domain-filter" aria-label="Labs nach Domäne filtern">` +
       `<option value="">Alle Domänen</option>` + domainIds.map(id => `<option value="${escapeHtml(id)}" ${id === LabViewState.domain ? "selected" : ""}>${escapeHtml(domainLabel(id))}</option>`).join("") + `</select></label>`;
-    const controls = `<div class="lab-navigation" aria-label="Lab-Navigation"><span>${visible.length} von ${allLabs.length} Labs</span>${topicSelect}${domainSelect}</div>`;
+    // Aggregierte Fortschrittsanzeige: zählt echte, in ProgressTracker gespeicherte
+    // "abgeschlossen"-Markierungen über alle Labs (nicht nur die gefilterte Ansicht).
+    const completedLabsCount = allLabs.filter(l => ProgressTracker.isLabDone(l.id)).length;
+    const progressHeader = `<div class="lab-progress-summary" role="status">${completedLabsCount} von ${allLabs.length} Labs abgeschlossen</div>`;
+    const controls = progressHeader + `<div class="lab-navigation" aria-label="Lab-Navigation"><span>${visible.length} von ${allLabs.length} Labs</span>${topicSelect}${domainSelect}</div>`;
     if (!visible.length) { container.innerHTML = controls + `<p role="status">Keine Labs gefunden für „${escapeHtml(filterText || "die gewählten Filter")}“.</p>`; bindLabFilters(container, filterText); return; }
 
     const indexById = new Map(allLabs.map((l, i) => [l.id, i]));
@@ -424,20 +600,33 @@
       const done = ProgressTracker.isLabDone(l.id);
       const steps = labArray(l.steps);
       const artifacts = labArray(l.artifacts || l.deliverables);
-      const refs = labArray(l.msLearnReferences || l.microsoftLearnReferences || l.msLearnUrls || l.references).filter(Boolean);
+      const refs = labArray(l.msLearnRefs || l.msLearnReferences || l.microsoftLearnReferences || l.msLearnUrls || l.references).filter(Boolean);
       const repo = l.repositoryUrl || l.repositoryLink || l.repository || l.repoUrl || l.githubUrl;
       const dependency = previous && !ProgressTracker.isLabDone(previous.id) ?
         `<div class="alert alert--warning lab-dependency" role="note"><strong>Vorausgesetztes Lab:</strong> ${escapeHtml(labText(previous.topic, previous.title))} (Lab ${Number(previous.sequence) || sequence - 1}) ist noch nicht erledigt.</div>` :
         (prerequisites.length ? `<div class="alert alert--info lab-dependency"><strong>Voraussetzungen:</strong> ${prerequisites.map(escapeHtml).join(", ")}</div>` : "");
+      const estMinutes = estimateLabMinutes(steps.length);
+      const level = labLevelFromSteps(steps.length);
+      const codeLang = l.codeSnippet ? detectCodeLanguage(l.codeSnippet, l.codeLanguage) : "";
       return `<details class="lab-card ${done ? "is-complete" : ""}" data-lab-id="${escapeHtml(l.id)}" data-sequence="${sequence}" data-topic="${escapeHtml(topic)}" data-domain="${escapeHtml(domainId)}">
-        <summary class="lab-card__summary"><span class="badge">Lab ${sequence}</span><span class="lab-card__title">${escapeHtml(l.title || topic)}</span><span class="badge ${done ? "badge--success" : ""}">${done ? "Abgeschlossen" : escapeHtml(domainLabel(domainId))}</span></summary>
+        <summary class="lab-card__summary">
+          <span class="badge">Lab ${sequence}</span>
+          <span class="lab-card__title">${escapeHtml(l.title || topic)}</span>
+          <span class="lab-card__duration" title="Grobe Schätzung: ${MINUTES_PER_STEP} Minuten pro Schritt (${steps.length || 1} Schritt${steps.length === 1 ? "" : "e"})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ca. ${estMinutes} Min.
+          </span>
+          <span class="badge ${done ? "badge--success" : ""}">${done ? "Abgeschlossen" : escapeHtml(domainLabel(domainId))}</span>
+          <span class="badge badge--level" title="Heuristik: abgeleitet aus der Schrittzahl (${steps.length} Schritt${steps.length === 1 ? "" : "e"}), keine redaktionelle Einstufung">${level}</span>
+          <span class="badge badge--content-type" title="Inhaltsübersicht vor dem Aufklappen">${steps.length} Schritt${steps.length === 1 ? "" : "e"}${l.codeSnippet ? " • 1 Code-Beispiel" : ""}</span>
+        </summary>
         <div class="lab-card__body">
         <p class="lab-card__topic"><strong>Topic:</strong> ${escapeHtml(topic)}</p>
         ${l.objective ? `<p><strong>Ziel:</strong> ${escapeHtml(l.objective)}</p>` : ""}
         ${dependency}
         ${steps.length ? `<h4>Schritte</h4><ol>${steps.map(s => `<li>${escapeHtml(s)}</li>`).join("")}</ol>` : ""}
         ${artifacts.length ? `<h4>Artefakte</h4><ul>${artifacts.map(a => `<li>${escapeHtml(a)}</li>`).join("")}</ul>` : ""}
-        ${l.codeSnippet ? `<pre class="code-block"><code>${escapeHtml(l.codeSnippet)}</code></pre>` : ""}
+        ${l.codeSnippet ? `<div class="code-block-wrap"><div class="code-block-wrap__label">${escapeHtml(codeLang)}</div><pre class="code-block"><code>${escapeHtml(l.codeSnippet)}</code></pre></div>` : ""}
         ${l.verification ? `<div class="alert alert--info"><strong>Verifikation:</strong>&nbsp;${escapeHtml(l.verification)}</div>` : ""}
         ${repo ? `<p><a href="${escapeHtml(repo)}" target="_blank" rel="noopener noreferrer">Repository öffnen ↗</a></p>` : ""}
         ${refs.length ? `<h4>Microsoft Learn</h4><ul>${refs.map(ref => { const url = typeof ref === "string" ? ref : (ref.url || ref.href); const title = typeof ref === "string" ? ref : (ref.title || ref.name || url); return url ? `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(title)} ↗</a></li>` : ""; }).join("")}</ul>` : ""}
@@ -448,8 +637,11 @@
     container.innerHTML = controls + html;
     bindLabFilters(container, filterText);
     container.querySelectorAll(".lab-done-btn").forEach(btn => btn.addEventListener("click", () => {
-      ProgressTracker.markLabDone(btn.getAttribute("data-lab-id"));
+      const labId = btn.getAttribute("data-lab-id");
+      ProgressTracker.markLabDone(labId);
       renderLabs(filterText);
+      const card = Array.from(container.querySelectorAll('.lab-card')).find(el => el.dataset.labId === labId);
+      if (card) { card.open = true; card.querySelector('.lab-done-btn').focus({ preventScroll: true }); }
       Announcer.say("Lab als abgeschlossen markiert.");
     }));
   }
@@ -622,29 +814,63 @@
       const scaledScore = questions.length ? Math.round((correctCount / questions.length) * 1000) : 0;
       const passed = scaledScore >= 700;
 
+      let weakestDomain = null;
+      let lowestAccuracy = 100;
       const domainRows = Object.keys(byDomain).map(dId => {
         const d = byDomain[dId];
         const pct = Math.round((d.correct / d.total) * 100);
+        const weightLabel = (AB620_CONTENT.domains.find(x => x.id === dId) || {}).weightPercent || "";
+        // Exam topic weight describes coverage, NOT a pass threshold or target accuracy.
+        if (pct < lowestAccuracy) { lowestAccuracy = pct; weakestDomain = dId; }
+        const compareText = `${pct}% richtig beantwortet · Prüfungsanteil: ${weightLabel}`;
         return `
           <div class="exam-results__domain-row">
-            <span style="min-width:220px;">${escapeHtml(domainLabel(dId))}</span>
-            <div class="exam-results__domain-bar"><div class="exam-results__domain-fill" style="width:${pct}%"></div></div>
-            <span>${d.correct}/${d.total}</span>
+            <span class="exam-results__domain-name">${escapeHtml(domainLabel(dId))}</span>
+            <div class="exam-results__domain-bar">
+              <div class="exam-results__domain-fill" style="width:${pct}%"></div>
+            </div>
+            <span class="exam-results__domain-score">${d.correct}/${d.total}</span>
+            <span class="exam-results__domain-compare">${escapeHtml(compareText)}</span>
           </div>`;
       }).join("");
 
-      const reviewHtml = questions.map((q, i) => {
-        const qOptions = Array.isArray(q.options) ? q.options : [];
-        const given = answers[q.id];
-        const isCorrect = given === q.correctIndex;
+      const reviewByDomain = {};
+      questions.forEach((q, i) => {
+        const domain = q.domain;
+        if (!reviewByDomain[domain]) reviewByDomain[domain] = [];
+        reviewByDomain[domain].push({ q, i });
+      });
+
+      const reviewHtml = Object.keys(reviewByDomain).map(dId => {
+        const items = reviewByDomain[dId];
+        const itemsHtml = items.map(({ q, i }) => {
+          const qOptions = Array.isArray(q.options) ? q.options : [];
+          const given = answers[q.id];
+          const isCorrect = given === q.correctIndex;
+          return `
+            <div class="review-item">
+              <p><span class="review-item__status ${isCorrect ? "correct" : "incorrect"}">${isCorrect ? "✓ Richtig" : "✗ Falsch"}</span> — Frage ${i + 1}: ${escapeHtml(q.question)}</p>
+              <p>Ihre Antwort: ${given !== undefined ? escapeHtml(qOptions[given] || "(unbekannte Antwort)") : "(keine Antwort)"}</p>
+              ${!isCorrect ? `<p>Korrekte Antwort: ${escapeHtml(qOptions[q.correctIndex] || "(nicht angegeben)")}</p>` : ""}
+              <p>${escapeHtml(q.explanation)}</p>
+              <p><a href="${escapeHtml(q.msLearnUrl)}" target="_blank" rel="noopener noreferrer">Microsoft Learn Referenz ↗</a></p>
+            </div>`;
+        }).join("");
         return `
-          <div class="review-item">
-            <p><span class="review-item__status ${isCorrect ? "correct" : "incorrect"}">${isCorrect ? "✓ Richtig" : "✗ Falsch"}</span> — Frage ${i + 1}: ${escapeHtml(q.question)}</p>
-            <p>Ihre Antwort: ${given !== undefined ? escapeHtml(qOptions[given] || "(unbekannte Antwort)") : "(keine Antwort)"}</p>
-            ${!isCorrect ? `<p>Korrekte Antwort: ${escapeHtml(qOptions[q.correctIndex] || "(nicht angegeben)")}</p>` : ""}
-            <p>${escapeHtml(q.explanation)}</p>
-            <p><a href="${escapeHtml(q.msLearnUrl)}" target="_blank" rel="noopener noreferrer">Microsoft Learn Referenz ↗</a></p>
-          </div>`;
+          <details class="module-card review-accordion" data-domain-id="${escapeHtml(dId)}">
+            <summary class="module-card__header">
+              <span class="module-card__number" aria-hidden="true">${items.length}</span>
+              <span class="module-card__title-group">
+                <p class="module-card__title">Review anzeigen: ${escapeHtml(domainLabel(dId))} (${items.length} Fragen)</p>
+              </span>
+              <svg class="module-card__chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </summary>
+            <div class="module-card__body">
+              ${itemsHtml}
+            </div>
+          </details>`;
       }).join("");
 
       const resultsEl = document.getElementById("exam-results");
@@ -655,12 +881,14 @@
             <span class="score-ring__value">${scaledScore}</span>
           </div>
           <div>
-            <h3>${passed ? "Bestanden ✓" : "Nicht bestanden"}</h3>
+            <h3 class="${passed ? "exam-results__status--pass" : "exam-results__status--fail"}">${passed ? "Bestanden ✓" : "Nicht bestanden"}</h3>
             <p>${scaledScore} von 1000 Punkten (Bestehensgrenze: 700) — ${correctCount} von ${questions.length} Fragen richtig.</p>
           </div>
         </div>
         <h4>Ergebnis nach Domäne</h4>
+        <p class="exam-results__legend">Die Balken zeigen Ihren Anteil richtiger Antworten je Domäne in diesem Übungsversuch. Die Prüfungsgewichtung beschreibt die Themenverteilung, keine erforderliche Trefferquote. Dieses Übungsergebnis bildet nicht Microsofts skalierte Prüfungsbewertung ab.</p>
         ${domainRows}
+        ${weakestDomain ? `<p class="exam-results__recommendation">Wiederholung empfohlen: ${escapeHtml(domainLabel(weakestDomain))} — niedrigster Anteil richtiger Antworten in diesem Versuch (${lowestAccuracy}%). Nutzen Sie den Fragenreview unten.</p>` : ""}
         <h4 style="margin-top:24px;">Vollständiger Review</h4>
         ${reviewHtml}
         <button type="button" class="btn btn--primary" id="exam-restart-btn" style="margin-top:16px;">Neue Prüfungssimulation starten</button>
@@ -685,13 +913,26 @@
     });
   }
 
+  /* ---------------- Domain shortcuts ---------------- */
+  function initDomainLinks() {
+    document.querySelectorAll('a[data-domain]').forEach(link => link.addEventListener('click', event => {
+      const id = link.dataset.domain;
+      if (!AB620_CONTENT.domains.some(d => d.id === id)) return;
+      event.preventDefault();
+      const search = document.getElementById('search-input');
+      if (search && search.value) { search.value = ''; renderModules(''); renderLabs(''); }
+      const domain = Array.from(document.querySelectorAll('.domain-accordion')).find(el => el.dataset.domainId === id);
+      if (domain) { domain.open = true; domain.scrollIntoView({ block: 'start' }); domain.querySelector('summary').focus({ preventScroll: true }); }
+    }));
+  }
+
   /* ---------------- Bootstrap ---------------- */
   document.addEventListener("DOMContentLoaded", () => {
     try { ThemeManager.init(); } catch (e) { console.error("ThemeManager.init failed:", e); }
     try { renderModules(""); } catch (e) { console.error("renderModules failed:", e); }
     try { renderLabs(""); } catch (e) { console.error("renderLabs failed:", e); }
     try { ExamSimulator.init(); } catch (e) { console.error("ExamSimulator.init failed:", e); }
-    try { initSearch(); } catch (e) { console.error("initSearch failed:", e); }
+    try { initSearch(); initDomainLinks(); } catch (e) { console.error("Navigation init failed:", e); }
     try { Dashboard.refresh(); } catch (e) { console.error("Dashboard.refresh failed:", e); }
   });
 
